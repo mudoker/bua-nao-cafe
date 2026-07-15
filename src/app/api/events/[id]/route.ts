@@ -6,7 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const data = getEvent(id);
+  const data = await getEvent(id);
   if (!data) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 });
   }
@@ -20,7 +20,7 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await request.json();
-    saveEvent(id, body);
+    await saveEvent(id, body);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to save event';

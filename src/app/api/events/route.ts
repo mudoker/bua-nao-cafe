@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   }
 
   const now = Date.now();
-  const events = getEvents()
+  const events = (await getEvents())
     .map(({ currentEvent, participants }) => {
       const participant = participants.find((p) => {
         const participantAccount = p.accountName || p.name.trim().toLowerCase();
