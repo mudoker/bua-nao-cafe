@@ -90,7 +90,7 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
                 setName(e.target.value);
                 if (error) setError('');
               }}
-              className="font-semibold text-foreground py-5"
+              className="font-semibold text-foreground h-11 px-3.5"
             />
             {error && <p className="text-xs text-destructive font-bold mt-1">{error}</p>}
           </div>

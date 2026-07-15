@@ -30,9 +30,9 @@ export default function Suggestions() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
-    if (score >= 60) return 'text-lime-500 bg-lime-500/10 border-lime-500/20';
-    if (score >= 30) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+    if (score >= 90) return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+    if (score >= 60) return 'text-lime-700 dark:text-lime-400 bg-lime-500/10 border-lime-500/20';
+    if (score >= 30) return 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20';
     return 'text-muted-foreground bg-muted border-border';
   };
 

@@ -37,8 +37,8 @@ export default function Header() {
 
   const handleShare = () => {
     const textMessage = language === 'en'
-      ? `☕️ Bữa Nào Cafe? Let's schedule a coffee meeting!\n📅 Topic: ${currentEvent.title}\n👉 Fill in your free hours here:`
-      : `☕️ Bữa Nào Cafe? Lên lịch hẹn cùng mình nhé!\n📅 Chủ đề: ${currentEvent.title}\n👉 Chọn giờ rảnh của bạn ở đây:`;
+      ? `☕️ Bữa Nào Cafe? Help us find the best time to meet!\n📅 Topic: ${currentEvent.title}\n👉 Fill in your free hours here:`
+      : `☕️ Bữa Nào Cafe? Hãy chọn giờ rảnh của bạn để chọn lịch hẹn nhé!\n📅 Chủ đề: ${currentEvent.title}\n👉 Chọn giờ rảnh của bạn ở đây:`;
     
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({

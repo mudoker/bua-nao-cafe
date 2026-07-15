@@ -254,7 +254,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                   placeholder="e.g., Q3 Alignment Sync"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="font-bold text-foreground py-5"
+                  className="font-bold text-foreground h-11 px-3.5"
                 />
               </div>
 
@@ -269,7 +269,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                   placeholder="e.g., Sarah Jenkins"
                   value={organizer}
                   onChange={(e) => setOrganizer(e.target.value)}
-                  className="font-bold text-foreground py-5"
+                  className="font-bold text-foreground h-11 px-3.5"
                 />
               </div>
 
@@ -373,7 +373,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
               <div className="relative">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-3.5 z-10" />
                 <Select value={String(visibleHoursStart)} onValueChange={(val) => setVisibleHoursStart(Number(val))}>
-                  <SelectTrigger id="visibleHoursStart" className="w-full pl-9 py-5 font-bold text-foreground">
+                  <SelectTrigger id="visibleHoursStart" className="w-full pl-9 !h-11 font-bold text-foreground">
                     <SelectValue placeholder="Hour" />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,7 +394,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
               <div className="relative">
                 <Clock className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-3.5 z-10" />
                 <Select value={String(visibleHoursEnd)} onValueChange={(val) => setVisibleHoursEnd(Number(val))}>
-                  <SelectTrigger id="visibleHoursEnd" className="w-full pl-9 py-5 font-bold text-foreground">
+                  <SelectTrigger id="visibleHoursEnd" className="w-full pl-9 !h-11 font-bold text-foreground">
                     <SelectValue placeholder="Hour" />
                   </SelectTrigger>
                   <SelectContent>
@@ -413,7 +413,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                 {getTranslation(language, 'slotDuration')}
               </label>
               <Select value={String(slotDuration)} onValueChange={(val) => setSlotDuration(Number(val))}>
-                <SelectTrigger id="slotDuration" className="w-full py-5 font-bold text-foreground">
+                <SelectTrigger id="slotDuration" className="w-full !h-11 font-bold text-foreground">
                   <SelectValue placeholder="Duration" />
                 </SelectTrigger>
                 <SelectContent>
@@ -437,14 +437,14 @@ export default function EventCreator({ onCreated }: CreatorProps) {
             </button>
 
             {showAdvanced && (
-              <div className="mt-4 p-4 rounded-xl border border-border bg-muted/30 dark:bg-muted/10 space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-slideDown">
+              <div className="mt-4 p-4 rounded-xl border border-border bg-muted/60 dark:bg-zinc-800/30 space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4 animate-slideDown">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
                     {getTranslation(language, 'prefWorkingHours')}
                   </label>
                   <div className="flex gap-2 items-center">
                     <Select value={String(preferredStart)} onValueChange={(val) => setPreferredStart(Number(val))}>
-                      <SelectTrigger className="w-full py-4 text-xs font-semibold text-foreground">
+                      <SelectTrigger className="w-full !h-10 text-xs font-semibold text-foreground">
                         <SelectValue placeholder="Start" />
                       </SelectTrigger>
                       <SelectContent>
@@ -457,7 +457,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                     </Select>
                     <span className="text-xs text-muted-foreground font-bold">to</span>
                     <Select value={String(preferredEnd)} onValueChange={(val) => setPreferredEnd(Number(val))}>
-                      <SelectTrigger className="w-full py-4 text-xs font-semibold text-foreground">
+                      <SelectTrigger className="w-full !h-10 text-xs font-semibold text-foreground">
                         <SelectValue placeholder="End" />
                       </SelectTrigger>
                       <SelectContent>
@@ -476,7 +476,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                     {getTranslation(language, 'meetingBuffer')}
                   </label>
                   <Select value={String(bufferMinutes)} onValueChange={(val) => setBufferMinutes(Number(val))}>
-                    <SelectTrigger id="bufferMinutes" className="w-full py-4 text-xs font-semibold text-foreground">
+                    <SelectTrigger id="bufferMinutes" className="w-full !h-10 text-xs font-semibold text-foreground">
                       <SelectValue placeholder="Buffer" />
                     </SelectTrigger>
                     <SelectContent>
@@ -497,7 +497,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                     type="datetime-local"
                     value={deadline}
                     onChange={(e) => setDeadline(e.target.value)}
-                    className="font-semibold text-foreground text-xs py-4"
+                    className="font-semibold text-foreground text-xs h-10 px-3 bg-card"
                   />
                 </div>
 
@@ -511,7 +511,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                     placeholder={getTranslation(language, 'noLimit')}
                     value={maxParticipants || ''}
                     onChange={(e) => setMaxParticipants(e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                    className="font-semibold text-foreground text-xs py-4"
+                    className="font-semibold text-foreground text-xs h-10 px-3 bg-card"
                   />
                 </div>
 
@@ -551,7 +551,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="font-semibold text-foreground text-xs py-4"
+                      className="font-semibold text-foreground text-xs h-10 px-3 bg-card"
                     />
                   </div>
                 )}

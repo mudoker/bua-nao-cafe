@@ -11,6 +11,7 @@ import Suggestions from '../components/Suggestions';
 import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
+import ThemeToggle from '../components/ThemeToggle';
 import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -44,9 +45,14 @@ function HomeContent() {
   // State 1: No Event Loaded (Show Creator & Landing)
   if (!currentEvent) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex flex-col justify-between relative overflow-hidden">
+      <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-hidden transition-colors duration-200">
+        {/* Floating Theme Toggle */}
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+
         {/* Decorative Grid Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(120,119,198,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(120,119,198,0.04)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
         {/* Branding Hero Banner */}
         <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 z-10">
@@ -59,34 +65,34 @@ function HomeContent() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary animate-pulse">
               <Sparkles className="w-3 h-3" />
               <span>
-                {language === 'en' ? 'Frictionless Coffee Scheduler' : 'Lên lịch hẹn Cafe nhanh chóng'}
+                {language === 'en' ? 'Frictionless Group Scheduler' : 'Tìm lịch rảnh nhóm nhanh chóng'}
               </span>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white m-0 leading-tight">
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground m-0 leading-tight">
               {getTranslation(language, 'landingTitle')}{' '}
               <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
                 {getTranslation(language, 'landingTitleGrad')}
               </span>
             </h1>
 
-            <p className="text-xs md:text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed font-semibold">
+            <p className="text-xs md:text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed font-semibold">
               {getTranslation(language, 'landingDesc')}
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-xs text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-xs text-muted-foreground/80 font-bold uppercase tracking-wider">
               <span className="flex items-center gap-1">
                 <Zap className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span>{getTranslation(language, 'zeroAccounts')}</span>
               </span>
-              <span className="w-1.5 h-1.5 bg-zinc-700 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-border rounded-full" />
               <span className="flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>{getTranslation(language, 'realtimeSync')}</span>
               </span>
-              <span className="w-1.5 h-1.5 bg-zinc-700 rounded-full" />
+              <span className="w-1.5 h-1.5 bg-border rounded-full" />
               <span className="flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-pink-500 shrink-0" />
                 <span>{getTranslation(language, 'mobilePainting')}</span>
               </span>
             </div>
@@ -96,8 +102,8 @@ function HomeContent() {
         </main>
 
         {/* Clean Footer */}
-        <footer className="py-6 border-t border-zinc-900 text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-black/40 z-10 shrink-0">
-          © {new Date().getFullYear()} Bữa Nào Cafe? — coffee scheduling made easy.
+        <footer className="py-6 border-t border-border text-center text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest bg-muted/10 dark:bg-black/40 z-10 shrink-0">
+          © {new Date().getFullYear()} Bữa Nào Cafe? — group scheduling made simple.
         </footer>
       </div>
     );
@@ -106,8 +112,13 @@ function HomeContent() {
   // State 2: Event Loaded, but Participant has not joined yet (Show Onboarding)
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
+        {/* Floating Theme Toggle */}
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+        
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(120,119,198,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(120,119,198,0.04)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
         <div className="w-full z-10 animate-fadeIn">
           <ParticipantOnboarding />
         </div>
@@ -174,8 +185,8 @@ function HomeContent() {
 export default function Home() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold text-sm">
-        Loading coffee scheduler...
+      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground font-bold text-sm">
+        Loading group scheduler...
       </div>
     }>
       <HomeContent />

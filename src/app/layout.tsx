@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bữa Nào Cafe? — Frictionless Coffee Scheduling",
-  description: "Lên lịch đi cafe và gặp mặt bạn bè tức thì, rảnh giờ nào chọn giờ đó. Biểu đồ nhiệt rực rỡ hiển thị lịch rảnh của cả nhóm thời gian thực. Không cần tạo tài khoản.",
+  title: "Bữa Nào Cafe? — Frictionless Group Scheduling",
+  description: "Tìm lịch rảnh và gặp mặt bạn bè tức thì, rảnh giờ nào chọn giờ đó. Biểu đồ nhiệt hiển thị lịch rảnh của cả nhóm thời gian thực. Không cần tạo tài khoản.",
 };
 
 export default function RootLayout({
