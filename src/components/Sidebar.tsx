@@ -3,7 +3,12 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { Users, Filter, CheckCircle2, Circle, AlertCircle, X, Trash2, Edit2, Check, HelpCircle, Activity } from 'lucide-react';
+import { Users, Filter, CheckCircle2, Circle, AlertCircle, Trash2, Edit2, Check, HelpCircle, Activity } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function Sidebar() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -60,172 +65,177 @@ export default function Sidebar() {
 
   return (
     <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-5">
-      {/* Participant List Panel */}
-      <div className="border border-border bg-card rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-foreground m-0 flex items-center gap-2">
+      {/* Participant List Card */}
+      <Card className="border-border bg-card shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
             <Users className="w-4 h-4 text-primary" />
             <span>{getTranslation(language, 'participants', { count: totalParticipants })}</span>
-          </h2>
-          <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+          </CardTitle>
+          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
             {getTranslation(language, 'submittedProgress', { rate: completionRate })}
           </span>
-        </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Completion Progress Bar */}
+          <div className="w-full bg-muted dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-primary h-full transition-all duration-500"
+              style={{ width: `${completionRate}%` }}
+            />
+          </div>
 
-        {/* Completion Progress Bar */}
-        <div className="w-full bg-muted dark:bg-zinc-800 h-2 rounded-full overflow-hidden mb-5">
-          <div
-            className="bg-primary h-full transition-all duration-500"
-            style={{ width: `${completionRate}%` }}
-          />
-        </div>
+          {/* Participants scroll area */}
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+            {participants.length === 0 ? (
+              <div className="text-center py-6 text-xs text-muted-foreground font-medium flex flex-col items-center gap-1">
+                <HelpCircle className="w-6 h-6 text-muted-foreground/50" />
+                <span>{getTranslation(language, 'noParticipants')}</span>
+                <span className="text-[10px]">{getTranslation(language, 'invitePrompt')}</span>
+              </div>
+            ) : (
+              participants.map((p) => {
+                const isFiltered = filters.selectedParticipantIds.includes(p.id);
+                const isMe = currentUser && currentUser.id === p.id;
+                const isHost = currentUser?.isHost;
 
-        {/* Participants scroll area */}
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {participants.length === 0 ? (
-            <div className="text-center py-6 text-xs text-muted-foreground font-medium flex flex-col items-center gap-1">
-              <HelpCircle className="w-6 h-6 text-muted-foreground/50" />
-              <span>{getTranslation(language, 'noParticipants')}</span>
-              <span className="text-[10px]">{getTranslation(language, 'invitePrompt')}</span>
-            </div>
-          ) : (
-            participants.map((p) => {
-              const isFiltered = filters.selectedParticipantIds.includes(p.id);
-              const isMe = currentUser && currentUser.id === p.id;
-              const isHost = currentUser?.isHost;
+                const timeStr = new Date(p.lastActive).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                const lastSeenText = getTranslation(language, 'lastSeen', { time: timeStr });
 
-              const timeStr = new Date(p.lastActive).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-              const lastSeenText = getTranslation(language, 'lastSeen', { time: timeStr });
-
-              return (
-                <div
-                  key={p.id}
-                  className={`group flex items-center justify-between p-2 rounded-xl border transition-all ${
-                    isFiltered
-                      ? 'border-primary bg-primary/5'
-                      : 'border-transparent bg-muted/20 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
-                  }`}
-                >
+                return (
                   <div
-                    onClick={() => toggleParticipantFilter(p.id)}
-                    className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"
-                    title={language === 'en' ? `Click to filter grid to ${p.name}'s schedule` : `Click để lọc lịch rảnh của ${p.name}`}
+                    key={p.id}
+                    className={`group flex items-center justify-between p-2 rounded-xl border transition-all ${
+                      isFiltered
+                        ? 'border-primary bg-primary/5'
+                        : 'border-transparent bg-muted/20 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
+                    }`}
                   >
-                    {/* Status circle and Avatar */}
-                    <div className="relative shrink-0">
-                      <span className="text-lg bg-card border border-border/80 p-0.5 rounded-lg shadow-sm block">{p.avatar}</span>
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
-                          p.isOnline ? 'bg-emerald-500' : 'bg-muted-foreground/50'
-                        }`}
-                        title={p.isOnline ? 'Online' : 'Offline'}
-                      />
+                    <div
+                      onClick={() => toggleParticipantFilter(p.id)}
+                      className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"
+                      title={language === 'en' ? `Click to filter grid to ${p.name}'s schedule` : `Click để lọc lịch rảnh của ${p.name}`}
+                    >
+                      {/* Status circle and Avatar */}
+                      <div className="relative shrink-0">
+                        <span className="text-lg bg-card border border-border/80 p-0.5 rounded-lg shadow-sm block">{p.avatar}</span>
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-card ${
+                            p.isOnline ? 'bg-emerald-500' : 'bg-muted-foreground/50'
+                          }`}
+                          title={p.isOnline ? 'Online' : 'Offline'}
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        {editingId === p.id ? (
+                          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              type="text"
+                              value={editingName}
+                              onChange={(e) => setEditingName(e.target.value)}
+                              className="h-7 text-xs font-bold w-28 bg-background border-primary focus-visible:ring-1"
+                              onKeyDown={(e) => e.key === 'Enter' && handleRenameSave(p.id)}
+                              autoFocus
+                            />
+                            <Button
+                              size="icon"
+                              className="h-7 w-7 bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer shrink-0"
+                              onClick={() => handleRenameSave(p.id)}
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span className={`text-xs font-bold truncate ${isFiltered ? 'text-primary' : 'text-foreground'}`}>
+                              {p.name}
+                            </span>
+                            {isMe && <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 leading-none">{getTranslation(language, 'you')}</span>}
+                            {p.isHost && <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 leading-none">{getTranslation(language, 'host')}</span>}
+                          </div>
+                        )}
+                        
+                        {/* Last active indicator */}
+                        <span className="text-[9px] text-muted-foreground font-semibold block mt-0.5">
+                          {p.isOnline ? getTranslation(language, 'activeNow') : lastSeenText}
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="min-w-0 flex-1">
-                      {editingId === p.id ? (
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="text"
-                            value={editingName}
-                            onChange={(e) => setEditingName(e.target.value)}
-                            className="px-1.5 py-0.5 text-xs bg-background text-foreground border border-primary rounded outline-none w-28 font-bold"
-                            onKeyDown={(e) => e.key === 'Enter' && handleRenameSave(p.id)}
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => handleRenameSave(p.id)}
-                            className="p-0.5 bg-emerald-500 text-white rounded cursor-pointer"
-                          >
-                            <Check className="w-3 h-3" />
-                          </button>
-                        </div>
+                    {/* Submit completion indicator & host actions */}
+                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                      {/* Check badge */}
+                      {p.isCompleted ? (
+                        <span title={getTranslation(language, 'availSubmitted')}>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                        </span>
                       ) : (
-                        <div className="flex items-center gap-1">
-                          <span className={`text-xs font-bold truncate ${isFiltered ? 'text-primary' : 'text-foreground'}`}>
-                            {p.name}
-                          </span>
-                          {isMe && <span className="text-[9px] font-bold text-primary bg-primary/10 px-1 rounded border border-primary/20">{getTranslation(language, 'you')}</span>}
-                          {p.isHost && <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1 rounded border border-amber-500/20">{getTranslation(language, 'host')}</span>}
+                        <span title={language === 'en' ? 'Pending submission' : 'Đang chờ gửi lịch'}>
+                          <Circle className="w-4 h-4 text-muted-foreground/40" />
+                        </span>
+                      )}
+
+                      {/* Host action panel */}
+                      {isHost && !isMe && (
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingId(p.id);
+                              setEditingName(p.name);
+                            }}
+                            className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                            title={language === 'en' ? 'Rename participant' : 'Đổi tên thành viên'}
+                          >
+                            <Edit2 className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeParticipant(p.id)}
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-red-500/10 cursor-pointer"
+                            title={language === 'en' ? 'Remove participant' : 'Xóa thành viên'}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       )}
-                      
-                      {/* Last active indicator */}
-                      <span className="text-[9px] text-muted-foreground font-semibold block mt-0.5">
-                        {p.isOnline ? getTranslation(language, 'activeNow') : lastSeenText}
-                      </span>
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                  {/* Submit completion indicator & host actions */}
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    {/* Check badge */}
-                    {p.isCompleted ? (
-                      <span title={getTranslation(language, 'availSubmitted')}>
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      </span>
-                    ) : (
-                      <span title={language === 'en' ? 'Pending submission' : 'Đang chờ gửi lịch'}>
-                        <Circle className="w-4 h-4 text-muted-foreground/40" />
-                      </span>
-                    )}
-
-                    {/* Host action panel */}
-                    {isHost && !isMe && (
-                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
-                        <button
-                          onClick={() => {
-                            setEditingId(p.id);
-                            setEditingName(p.name);
-                          }}
-                          className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
-                          title={language === 'en' ? 'Rename participant' : 'Đổi tên thành viên'}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeParticipant(p.id)}
-                          className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-red-500/10 cursor-pointer"
-                          title={language === 'en' ? 'Remove participant' : 'Xóa thành viên'}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Filter Options Panel */}
-      <div className="border border-border bg-card rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-foreground m-0 flex items-center gap-2">
+      {/* Filter Options Card */}
+      <Card className="border-border bg-card shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
             <Filter className="w-4 h-4 text-primary" />
             <span>{getTranslation(language, 'filtersTitle')}</span>
-          </h2>
+          </CardTitle>
           {isFilterActive && (
-            <button
+            <Button
+              variant="link"
               onClick={clearFilters}
-              className="text-[10px] font-bold text-destructive hover:underline cursor-pointer"
+              className="text-[10px] font-bold text-destructive hover:underline cursor-pointer p-0 h-auto"
             >
               {getTranslation(language, 'clearAll')}
-            </button>
+            </Button>
           )}
-        </div>
-
-        <div className="space-y-4">
+        </CardHeader>
+        <CardContent className="space-y-4">
           {/* Working hours checkbox */}
           <div className="flex items-center gap-2.5">
-            <input
-              type="checkbox"
+            <Checkbox
               id="filter-working"
               checked={filters.workingHoursOnly}
-              onChange={(e) => setFilter('workingHoursOnly', e.target.checked)}
-              className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+              onCheckedChange={(checked) => setFilter('workingHoursOnly', checked === true)}
+              className="cursor-pointer"
             />
             <label htmlFor="filter-working" className="text-xs font-bold text-foreground cursor-pointer select-none">
               {getTranslation(language, 'workingHoursOnly')}
@@ -234,12 +244,11 @@ export default function Sidebar() {
 
           {/* Weekend toggle */}
           <div className="flex items-center gap-2.5">
-            <input
-              type="checkbox"
+            <Checkbox
               id="filter-weekends"
               checked={filters.hideWeekend}
-              onChange={(e) => setFilter('hideWeekend', e.target.checked)}
-              className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
+              onCheckedChange={(checked) => setFilter('hideWeekend', checked === true)}
+              className="cursor-pointer"
             />
             <label htmlFor="filter-weekends" className="text-xs font-bold text-foreground cursor-pointer select-none">
               {getTranslation(language, 'hideWeekends')}
@@ -247,19 +256,18 @@ export default function Sidebar() {
           </div>
 
           {/* Min Overlap Slider */}
-          <div className="space-y-1.5 pt-2 border-t border-border">
+          <div className="space-y-2 pt-2 border-t border-border">
             <div className="flex justify-between text-xs font-bold">
               <span className="text-muted-foreground">{getTranslation(language, 'minOverlap')}</span>
               <span className="text-primary">{filters.minOverlapPercentage === 0 ? getTranslation(language, 'any') : `${filters.minOverlapPercentage}% +`}</span>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="20"
-              value={filters.minOverlapPercentage}
-              onChange={(e) => setFilter('minOverlapPercentage', parseInt(e.target.value, 10))}
-              className="w-full accent-primary cursor-pointer h-1 bg-muted dark:bg-zinc-800 rounded-lg appearance-none"
+            <Slider
+              min={0}
+              max={100}
+              step={20}
+              value={[filters.minOverlapPercentage]}
+              onValueChange={(val) => setFilter('minOverlapPercentage', Array.isArray(val) ? val[0] : val)}
+              className="py-2 cursor-pointer"
             />
             <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
               <span>{getTranslation(language, 'any')}</span>
@@ -271,24 +279,25 @@ export default function Sidebar() {
 
           {/* Selected participants filtering alert */}
           {filters.selectedParticipantIds.length > 0 && (
-            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-start gap-1.5 mt-2">
+            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20 text-xs text-primary flex items-start gap-1.5 mt-2 animate-fadeIn font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <span>{getTranslation(language, 'filteringAlert', { count: filters.selectedParticipantIds.length })}</span>
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Activity Log Feed */}
-      <div className="border border-border bg-card rounded-2xl p-5 shadow-sm flex-1 min-h-[200px] flex flex-col">
-        <h2 className="text-sm font-bold text-foreground mb-3 shrink-0 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-primary" />
-          <span>{getTranslation(language, 'realtimeActivity')}</span>
-        </h2>
-
-        <div className="flex-1 overflow-y-auto space-y-2.5 max-h-56 pr-1 font-semibold">
+      {/* Activity Log Feed Card */}
+      <Card className="border-border bg-card shadow-sm flex-1 min-h-[200px] flex flex-col">
+        <CardHeader className="pb-3 space-y-0">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
+            <Activity className="w-4 h-4 text-primary" />
+            <span>{getTranslation(language, 'realtimeActivity')}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto space-y-2.5 max-h-56 pr-1 font-semibold">
           {recentActivity.length === 0 ? (
             <div className="text-center text-[11px] text-muted-foreground/60 py-6">
               {getTranslation(language, 'listeningActivity')}
@@ -303,8 +312,8 @@ export default function Sidebar() {
               </div>
             ))
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </aside>
   );
 }

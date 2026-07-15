@@ -11,7 +11,8 @@ import Suggestions from '../components/Suggestions';
 import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
-import { Calendar, Sparkles, Zap, ShieldCheck, Grid, Users, Lightbulb, BarChart3 } from 'lucide-react';
+import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -113,54 +114,6 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
-      
-      {/* Mobile view panel selectors */}
-      <div className="flex lg:hidden sticky top-[57px] z-40 bg-card border-b border-border/80 p-1 gap-1 text-[11px] font-bold w-full shadow-sm">
-        <button
-          onClick={() => setActiveMobileTab('grid')}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 text-center rounded-lg transition-all cursor-pointer ${
-            activeMobileTab === 'grid'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-muted-foreground hover:text-foreground bg-muted/20 dark:bg-muted/10'
-          }`}
-        >
-          <Grid className="w-3.5 h-3.5" />
-          <span>{language === 'en' ? 'Grid' : 'Biểu đồ'}</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('team')}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 text-center rounded-lg transition-all cursor-pointer ${
-            activeMobileTab === 'team'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-muted-foreground hover:text-foreground bg-muted/20 dark:bg-muted/10'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>{language === 'en' ? 'Team' : 'Thành viên'}</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('suggestions')}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 text-center rounded-lg transition-all cursor-pointer ${
-            activeMobileTab === 'suggestions'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-muted-foreground hover:text-foreground bg-muted/20 dark:bg-muted/10'
-          }`}
-        >
-          <Lightbulb className="w-3.5 h-3.5" />
-          <span>{language === 'en' ? 'Alerts' : 'Khung giờ'}</span>
-        </button>
-        <button
-          onClick={() => setActiveMobileTab('charts')}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 text-center rounded-lg transition-all cursor-pointer ${
-            activeMobileTab === 'charts'
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-muted-foreground hover:text-foreground bg-muted/20 dark:bg-muted/10'
-          }`}
-        >
-          <BarChart3 className="w-3.5 h-3.5" />
-          <span>{language === 'en' ? 'Charts' : 'Thống kê'}</span>
-        </button>
-      </div>
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:px-6">
         {/* Desktop Layout (Two Column) */}
@@ -178,13 +131,36 @@ function HomeContent() {
           </div>
         </div>
 
-        {/* Mobile Layout (Tab Content) */}
-        <div className="lg:hidden flex flex-col gap-4 animate-fadeIn">
-          {activeMobileTab === 'grid' && <AvailabilityGrid />}
-          {activeMobileTab === 'team' && <Sidebar />}
-          {activeMobileTab === 'suggestions' && <Suggestions />}
-          {activeMobileTab === 'charts' && <Analytics />}
-        </div>
+        {/* Mobile Layout (Tab Content using shadcn tabs) */}
+        <Tabs
+          value={activeMobileTab}
+          onValueChange={(val) => setActiveMobileTab(val as any)}
+          className="w-full lg:hidden flex flex-col gap-4"
+        >
+          <TabsList className="grid grid-cols-4 w-full h-11 bg-muted/60 dark:bg-zinc-900 border border-border p-1 rounded-xl">
+            <TabsTrigger value="grid" className="text-[10px] font-bold flex items-center gap-1.5 cursor-pointer">
+              <GridIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Grid' : 'Biểu đồ'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="team" className="text-[10px] font-bold flex items-center gap-1.5 cursor-pointer">
+              <Users className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Team' : 'Thành viên'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="suggestions" className="text-[10px] font-bold flex items-center gap-1.5 cursor-pointer">
+              <Lightbulb className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Alerts' : 'Khung giờ'}</span>
+            </TabsTrigger>
+            <TabsTrigger value="charts" className="text-[10px] font-bold flex items-center gap-1.5 cursor-pointer">
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
+              <span>{language === 'en' ? 'Charts' : 'Thống kê'}</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="grid" className="mt-0 focus-visible:outline-none"><AvailabilityGrid /></TabsContent>
+          <TabsContent value="team" className="mt-0 focus-visible:outline-none"><Sidebar /></TabsContent>
+          <TabsContent value="suggestions" className="mt-0 focus-visible:outline-none"><Suggestions /></TabsContent>
+          <TabsContent value="charts" className="mt-0 focus-visible:outline-none"><Analytics /></TabsContent>
+        </Tabs>
       </main>
     </div>
   );

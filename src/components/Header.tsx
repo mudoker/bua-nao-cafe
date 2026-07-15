@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import ThemeToggle from './ThemeToggle';
 import { getTranslation } from '../utils/translations';
-import { Copy, Check, QrCode, Play, Square, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield, Languages } from 'lucide-react';
+import { Copy, Check, QrCode, Play, Square, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Header() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -127,50 +128,56 @@ export default function Header() {
           </div>
 
           {/* Realtime simulator */}
-          <button
+          <Button
             onClick={() => toggleSimulation(!isSimulating)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-              isSimulating
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500 pulse-emerald'
-                : 'bg-background border-border text-muted-foreground hover:bg-muted/80'
+            variant={isSimulating ? "default" : "outline"}
+            size="sm"
+            className={`flex items-center gap-1.5 font-bold cursor-pointer transition-all ${
+              isSimulating ? 'bg-emerald-500 hover:bg-emerald-600 border-transparent text-white pulse-emerald' : ''
             }`}
             title={language === 'en' ? 'Simulate live responses' : 'Mô phỏng phản hồi thời gian thực'}
           >
             {isSimulating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
             <span className="flex items-center gap-1">
               <span>{getTranslation(language, 'simulation')}</span>
-              <span className={`w-1.5 h-1.5 rounded-full ${isSimulating ? 'bg-emerald-500' : 'bg-muted-foreground/50'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${isSimulating ? 'bg-emerald-200' : 'bg-muted-foreground/50'}`} />
             </span>
-          </button>
+          </Button>
 
           {/* Copy link */}
           <div className="flex items-center">
-            <button
+            <Button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-l-lg text-xs font-bold bg-background border border-border text-foreground hover:bg-muted/80 transition-all cursor-pointer"
+              variant="outline"
+              size="sm"
+              className="rounded-r-none border-r-0 font-bold cursor-pointer h-9"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? getTranslation(language, 'copiedLink') : getTranslation(language, 'copyInvite')}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowQR(!showQR)}
-              className="px-2.5 py-1.5 rounded-r-lg bg-background border-y border-r border-border text-foreground hover:bg-muted/80 transition-all cursor-pointer"
+              variant="outline"
+              size="icon"
+              className="rounded-l-none cursor-pointer h-9 w-9"
               title={getTranslation(language, 'qrCode')}
             >
               <QrCode className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </div>
 
           <ThemeToggle />
 
           {/* Exit Event workspace */}
-          <button
+          <Button
             onClick={resetEvent}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all cursor-pointer"
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-1 font-bold cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">{getTranslation(language, 'exit')}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -184,12 +191,14 @@ export default function Header() {
           <span className="text-[10px] text-center text-slate-400 dark:text-zinc-500 font-medium">
             {getTranslation(language, 'scanQr')}
           </span>
-          <button
+          <Button
             onClick={() => setShowQR(false)}
-            className="mt-1 px-3 py-1 text-[10px] font-bold border border-border rounded hover:bg-muted transition-all cursor-pointer w-full text-center text-foreground"
+            variant="outline"
+            size="sm"
+            className="mt-1 font-bold cursor-pointer w-full text-center text-foreground"
           >
             {language === 'en' ? 'Close' : 'Đóng'}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -208,38 +217,45 @@ export default function Header() {
 
           {/* Tool actions */}
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
               onClick={undo}
               disabled={undoStack.length <= 1}
-              className="p-1.5 rounded-lg bg-background border border-border text-foreground hover:bg-muted transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="h-8 w-8 cursor-pointer rounded-lg"
               title={language === 'en' ? 'Undo edit' : 'Hoàn tác'}
             >
               <Undo2 className="w-3.5 h-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
               onClick={redo}
               disabled={redoStack.length === 0}
-              className="p-1.5 rounded-lg bg-background border border-border text-foreground hover:bg-muted transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="h-8 w-8 cursor-pointer rounded-lg"
               title={language === 'en' ? 'Redo edit' : 'Làm lại'}
             >
               <Redo2 className="w-3.5 h-3.5" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={clearCurrentAvailability}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-background border border-border text-foreground hover:bg-red-500/10 hover:text-red-500 transition-all cursor-pointer text-[11px] font-bold"
+              className="text-[11px] font-bold border-border/80 hover:bg-red-500/10 hover:text-red-500 cursor-pointer h-8 px-3"
               title={language === 'en' ? 'Clear all selected slots' : 'Xóa sạch tất cả các ô đã chọn'}
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>{getTranslation(language, 'clear')}</span>
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={fillCurrentAvailability}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/95 transition-all cursor-pointer text-[11px] font-bold"
+              size="sm"
+              className="text-[11px] font-bold cursor-pointer h-8 px-3"
               title={language === 'en' ? 'Select all slots in grid' : 'Chọn tất cả các ô trên lịch'}
             >
               <CheckSquare className="w-3.5 h-3.5" />
               <span>{getTranslation(language, 'selectAll')}</span>
-            </button>
+            </Button>
           </div>
         </div>
       )}

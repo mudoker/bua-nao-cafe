@@ -1,12 +1,13 @@
 "use client";
+
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function ThemeToggle() {
   const [isDark, setIsDark] = useState(true); // Default to dark mode for premium aesthetic
 
   useEffect(() => {
-    // Check local storage or default to dark
     const saved = localStorage.getItem('theme');
     const dark = saved ? saved === 'dark' : true;
     setIsDark(dark);
@@ -29,12 +30,14 @@ export default function ThemeToggle() {
   };
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="icon"
       onClick={toggle}
-      className="p-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted/80 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-background cursor-pointer"
+      className="cursor-pointer text-foreground hover:bg-muted/80"
       aria-label="Toggle theme"
     >
-      {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-indigo-600" />}
-    </button>
+      {isDark ? <Sun className="w-4 h-4 text-amber-400 fill-amber-400" /> : <Moon className="w-4 h-4 text-indigo-600 fill-indigo-600" />}
+    </Button>
   );
 }

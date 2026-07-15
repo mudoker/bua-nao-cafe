@@ -4,7 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
 import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate } from '../utils/time';
-import { Brush, Eraser, CheckCircle2, AlertCircle, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
+import { Brush, Eraser, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function AvailabilityGrid() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -198,15 +200,15 @@ export default function AvailabilityGrid() {
     const { percentage, overlapCount } = getCellDetails(slotId);
 
     if (currentEvent.finalizedSlot === slotId) {
-      return 'bg-violet-600 border-2 border-amber-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.8)] pulse-emerald';
+      return 'bg-violet-600 border border-amber-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.8)] pulse-emerald';
     }
 
     const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
 
     if (percentage === 0 && overlapCount === 0) {
       return isMeAvailable
-        ? 'bg-primary/20 border border-primary/40'
-        : 'bg-muted/40 hover:bg-muted/60 dark:bg-muted/20 dark:hover:bg-muted/30';
+        ? 'bg-primary/20 border border-primary/45'
+        : 'bg-muted/40 hover:bg-muted/65 dark:bg-muted/20 dark:hover:bg-muted/30';
     }
 
     if (percentage <= 20) return 'bg-blue-500/20 text-blue-800 dark:text-blue-300';
@@ -255,51 +257,53 @@ export default function AvailabilityGrid() {
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-4 border border-border bg-card rounded-2xl p-4 md:p-6 shadow-sm overflow-hidden" ref={gridContainerRef}>
+    <Card className="flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden" ref={gridContainerRef}>
       {/* Grid Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
-        <div className="flex items-center gap-2">
+      <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b border-border">
+        <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
           <CalendarDays className="w-5 h-5 text-primary" />
-          <h2 className="text-sm font-bold text-foreground m-0">{getTranslation(language, 'heatmapTitle')}</h2>
-        </div>
+          <span>{getTranslation(language, 'heatmapTitle')}</span>
+        </CardTitle>
 
         {/* Tools panel */}
         {currentUser && (
           <div className="flex items-center gap-2.5">
             <div className="hidden sm:flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
-              <button
+              <Button
+                variant={activeTool === 'brush' ? 'default' : 'ghost'}
+                size="sm"
                 onClick={() => setActiveTool('brush')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                  activeTool === 'brush' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className="flex items-center gap-1 text-[11px] font-bold h-7 cursor-pointer"
               >
-                <Brush className="w-3 h-3 text-primary" />
+                <Brush className="w-3 h-3 shrink-0" />
                 <span>{getTranslation(language, 'paintMode')}</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={activeTool === 'eraser' ? 'default' : 'ghost'}
+                size="sm"
                 onClick={() => setActiveTool('eraser')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                  activeTool === 'eraser' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className="flex items-center gap-1 text-[11px] font-bold h-7 cursor-pointer"
               >
-                <Eraser className="w-3 h-3 text-destructive" />
+                <Eraser className="w-3 h-3 shrink-0" />
                 <span>{getTranslation(language, 'eraseMode')}</span>
-              </button>
+              </Button>
             </div>
 
             {/* Mobile Touch Mode toggle */}
             <div className="sm:hidden flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
               <button
+                type="button"
                 onClick={() => setTouchMode('paint')}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
                   touchMode === 'paint' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground'
                 }`}
               >
                 {getTranslation(language, 'paintMobile')}
               </button>
               <button
+                type="button"
                 onClick={() => setTouchMode('scroll')}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
                   touchMode === 'scroll' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
@@ -308,237 +312,245 @@ export default function AvailabilityGrid() {
             </div>
           </div>
         )}
-      </div>
+      </CardHeader>
 
-      {/* Date Carousel Selector for Mobile */}
-      {filteredDates.length > 1 && (
-        <div className="flex sm:hidden items-center justify-between gap-2 p-1.5 bg-muted/30 rounded-xl">
-          <button
-            onClick={() => setActiveMobileDateIndex(Math.max(0, activeMobileDateIndex - 1))}
-            disabled={activeMobileDateIndex === 0}
-            className="p-1.5 rounded-lg border border-border bg-card text-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <div className="text-center">
-            <span className="text-xs font-bold block text-foreground">
-              {getDayName(filteredDates[activeMobileDateIndex])}
-            </span>
-            <span className="text-[10px] text-muted-foreground font-bold">
-              {getFormattedDate(filteredDates[activeMobileDateIndex])}
-            </span>
+      <CardContent className="space-y-4 pt-4">
+        {/* Date Carousel Selector for Mobile */}
+        {filteredDates.length > 1 && (
+          <div className="flex sm:hidden items-center justify-between gap-2 p-1.5 bg-muted/30 rounded-xl">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setActiveMobileDateIndex(Math.max(0, activeMobileDateIndex - 1))}
+              disabled={activeMobileDateIndex === 0}
+              className="h-8 w-8 cursor-pointer shrink-0"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <div className="text-center">
+              <span className="text-xs font-bold block text-foreground leading-none">
+                {getDayName(filteredDates[activeMobileDateIndex])}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-bold mt-1 block leading-none">
+                {getFormattedDate(filteredDates[activeMobileDateIndex])}
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setActiveMobileDateIndex(Math.min(filteredDates.length - 1, activeMobileDateIndex + 1))}
+              disabled={activeMobileDateIndex === filteredDates.length - 1}
+              className="h-8 w-8 cursor-pointer shrink-0"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-          <button
-            onClick={() => setActiveMobileDateIndex(Math.min(filteredDates.length - 1, activeMobileDateIndex + 1))}
-            disabled={activeMobileDateIndex === filteredDates.length - 1}
-            className="p-1.5 rounded-lg border border-border bg-card text-foreground disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Main Grid View */}
-      <div className="flex-1 overflow-auto max-h-[500px] border border-border rounded-xl relative bg-card">
-        <table className="w-full border-collapse table-fixed select-none" onMouseLeave={() => setHoveredSlot(null)}>
-          {/* Header Row (Dates) */}
-          <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
-            <tr>
-              <th className="w-16 md:w-20 shrink-0 sticky left-0 z-30 bg-card border-r border-border p-1 text-[10px] font-bold text-muted-foreground uppercase text-center">
-                {getTranslation(language, 'time')}
-              </th>
-
-              {filteredDates.map((dateStr, idx) => (
-                <th
-                  key={dateStr}
-                  className={`border-r border-border p-1.5 text-center min-w-[70px] ${
-                    idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                  }`}
-                >
-                  <div className="text-xs font-bold text-foreground leading-tight">
-                    {getDayName(dateStr)}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground font-semibold leading-tight">
-                    {getFormattedDate(dateStr)}
-                  </div>
-
-                  {/* Quick Select Actions */}
-                  {currentUser && (
-                    <div className="flex items-center justify-center gap-1.5 mt-1.5">
-                      <button
-                        onClick={() => handleDayAction(dateStr, 'select')}
-                        className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
-                      >
-                        {getTranslation(language, 'all')}
-                      </button>
-                      <span className="text-muted-foreground/30 text-[9px]">|</span>
-                      <button
-                        onClick={() => handleDayAction(dateStr, 'clear')}
-                        className="text-[9px] font-bold text-destructive hover:underline cursor-pointer"
-                      >
-                        {getTranslation(language, 'clear')}
-                      </button>
-                    </div>
-                  )}
+        {/* Main Grid View */}
+        <div className="overflow-auto max-h-[440px] border border-border rounded-xl relative bg-card">
+          <table className="w-full border-collapse table-fixed select-none" onMouseLeave={() => setHoveredSlot(null)}>
+            {/* Header Row (Dates) */}
+            <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+              <tr>
+                <th className="w-16 md:w-20 shrink-0 sticky left-0 z-30 bg-card border-r border-border p-1 text-[10px] font-bold text-muted-foreground uppercase text-center">
+                  {getTranslation(language, 'time')}
                 </th>
-              ))}
-            </tr>
-          </thead>
 
-          {/* Time Rows */}
-          <tbody>
-            {uniqueTimes.map((timeStr) => {
-              const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
+                {filteredDates.map((dateStr, idx) => (
+                  <th
+                    key={dateStr}
+                    className={`border-r border-border p-1.5 text-center min-w-[70px] ${
+                      idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-foreground leading-tight">
+                      {getDayName(dateStr)}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground font-semibold leading-tight mt-0.5">
+                      {getFormattedDate(dateStr)}
+                    </div>
+
+                    {/* Quick Select Actions */}
+                    {currentUser && (
+                      <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                        <Button
+                          variant="link"
+                          onClick={() => handleDayAction(dateStr, 'select')}
+                          className="text-[9px] font-bold text-primary hover:underline cursor-pointer p-0 h-auto"
+                        >
+                          {getTranslation(language, 'all')}
+                        </Button>
+                        <span className="text-muted-foreground/30 text-[9px] font-bold">|</span>
+                        <Button
+                          variant="link"
+                          onClick={() => handleDayAction(dateStr, 'clear')}
+                          className="text-[9px] font-bold text-destructive hover:underline cursor-pointer p-0 h-auto"
+                        >
+                          {getTranslation(language, 'clear')}
+                        </Button>
+                      </div>
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
+            {/* Time Rows */}
+            <tbody>
+              {uniqueTimes.map((timeStr) => {
+                const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
+
+                return (
+                  <tr key={timeStr} className="border-b border-border/50 last:border-0 h-10">
+                    {/* Left Column (Sticky Time) */}
+                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
+                      {formattedTime}
+                    </td>
+
+                    {/* Day cells */}
+                    {filteredDates.map((dateStr, idx) => {
+                      const slotId = `${dateStr}T${timeStr}`;
+                      const isFinalized = currentEvent.finalizedSlot === slotId;
+                      const cellBg = getCellBgClass(slotId);
+
+                      return (
+                        <td
+                          key={slotId}
+                          data-slot-id={slotId}
+                          className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
+                            idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
+                          }`}
+                          onMouseDown={(e) => handleMouseDown(slotId, e)}
+                          onMouseEnter={() => handleMouseEnterCell(slotId)}
+                          onMouseMove={(e) => handleMouseMove(slotId, e)}
+                          onTouchStart={(e) => handleTouchStart(slotId, e)}
+                          onTouchMove={handleTouchMove}
+                          onDoubleClick={() => handleCellDoubleClick(slotId)}
+                        >
+                          {isFinalized && (
+                            <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
+                              👑
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Floating Tooltip Card */}
+          {hoveredSlot && (
+            (() => {
+              const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(hoveredSlot);
+              const isMeAvailable = currentUser && availability[currentUser.id]?.includes(hoveredSlot);
+              const isFinalized = currentEvent.finalizedSlot === hoveredSlot;
 
               return (
-                <tr key={timeStr} className="border-b border-border/50 last:border-0 h-10">
-                  {/* Left Column (Sticky Time) */}
-                  <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
-                    {formattedTime}
-                  </td>
-
-                  {/* Day cells */}
-                  {filteredDates.map((dateStr, idx) => {
-                    const slotId = `${dateStr}T${timeStr}`;
-                    const isFinalized = currentEvent.finalizedSlot === slotId;
-                    const cellBg = getCellBgClass(slotId);
-
-                    return (
-                      <td
-                        key={slotId}
-                        data-slot-id={slotId}
-                        className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
-                          idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                        }`}
-                        onMouseDown={(e) => handleMouseDown(slotId, e)}
-                        onMouseEnter={() => handleMouseEnterCell(slotId)}
-                        onMouseMove={(e) => handleMouseMove(slotId, e)}
-                        onTouchStart={(e) => handleTouchStart(slotId, e)}
-                        onTouchMove={handleTouchMove}
-                        onDoubleClick={() => handleCellDoubleClick(slotId)}
-                      >
-                        {isFinalized && (
-                          <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
-                            👑
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-
-        {/* Floating Tooltip Card */}
-        {hoveredSlot && (
-          (() => {
-            const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(hoveredSlot);
-            const isMeAvailable = currentUser && availability[currentUser.id]?.includes(hoveredSlot);
-            const isFinalized = currentEvent.finalizedSlot === hoveredSlot;
-
-            return (
-              <div
-                className="absolute bg-card/95 border border-border p-3 rounded-xl shadow-xl max-w-[200px] z-40 text-xs pointer-events-none transition-opacity duration-150 backdrop-blur-sm"
-                style={{
-                  left: tooltipPos.x,
-                  top: tooltipPos.y,
-                }}
-              >
-                <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
-                  <span>{formatSlotDate(hoveredSlot)}</span>
-                  <span>@</span>
-                  <span>{formatSlotTime(hoveredSlot)}</span>
-                </div>
-
-                {isFinalized && (
-                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
-                    <Award className="w-3.5 h-3.5 fill-current" />
-                    <span>{getTranslation(language, 'finalized')}</span>
+                <div
+                  className="absolute bg-card/95 border border-border p-3 rounded-xl shadow-xl max-w-[200px] z-40 text-xs pointer-events-none transition-opacity duration-150 backdrop-blur-sm border-border"
+                  style={{
+                    left: tooltipPos.x,
+                    top: tooltipPos.y,
+                  }}
+                >
+                  <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
+                    <span>{formatSlotDate(hoveredSlot)}</span>
+                    <span>@</span>
+                    <span>{formatSlotTime(hoveredSlot)}</span>
                   </div>
-                )}
 
-                {/* Overlap Summary */}
-                <div className="flex items-center gap-1.5 mb-2 font-bold">
-                  <span className="text-primary">
-                    {overlapCount} / {totalCount} {getTranslation(language, 'available')}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
-                </div>
+                  {isFinalized && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
+                      <Award className="w-3.5 h-3.5 fill-current" />
+                      <span>{getTranslation(language, 'finalized')}</span>
+                    </div>
+                  )}
 
-                {/* Your state indicator */}
-                {currentUser && (
-                  <div className="mb-2 text-[10px] font-bold">
-                    <span>{getTranslation(language, 'yourAvailability')}: </span>
-                    <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
-                      {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                  {/* Overlap Summary */}
+                  <div className="flex items-center gap-1.5 mb-2 font-bold">
+                    <span className="text-primary">
+                      {overlapCount} / {totalCount} {getTranslation(language, 'available')}
                     </span>
+                    <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
                   </div>
-                )}
 
-                {/* Available list */}
-                {availableUsers.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
-                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                      {availableUsers.map((u) => (
-                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground">
-                          <span className={`w-1 h-1 rounded-full ${getDotColorClass(u.color)}`} />
-                          <span>{u.name}</span>
-                        </span>
-                      ))}
+                  {/* Your state indicator */}
+                  {currentUser && (
+                    <div className="mb-2 text-[10px] font-bold">
+                      <span>{getTranslation(language, 'yourAvailability')}: </span>
+                      <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
+                        {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                      </span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Unavailable list */}
-                {unavailableUsers.length > 0 && (
-                  <div className="space-y-1 mt-2">
-                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
-                    <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                      {unavailableUsers.map((u) => (
-                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
-                          <span>{u.name}</span>
-                        </span>
-                      ))}
+                  {/* Available list */}
+                  {availableUsers.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
+                      <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                        {availableUsers.map((u) => (
+                          <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
+                            <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
+                            <span>{u.name}</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()
-        )}
-      </div>
+                  )}
 
-      {/* Grid Legend & Instructions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-border">
-        {/* Heatmap Legend */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0">
-            {getTranslation(language, 'overlapIntensity')}:
-          </span>
-          <div className="flex items-center gap-1">
-            <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="0%" />
-            <span className="w-5 h-3 rounded bg-blue-500/20" title="1-20%" />
-            <span className="w-5 h-3 rounded bg-cyan-500/35" title="21-40%" />
-            <span className="w-5 h-3 rounded bg-emerald-500/40" title="41-60%" />
-            <span className="w-5 h-3 rounded bg-lime-500/60" title="61-80%" />
-            <span className="w-5 h-3 rounded bg-emerald-600" title="81-100%" />
-          </div>
-          <span className="text-[10px] text-muted-foreground font-semibold">0% → 100%</span>
-        </div>
-
-        {/* User Help tip */}
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
-          <HelpCircle className="w-3.5 h-3.5 text-primary shrink-0" />
-          {currentUser ? (
-            <span>{touchMode === 'paint' ? getTranslation(language, 'gridHelpTextMobile') : getTranslation(language, 'gridHelpText')}</span>
-          ) : (
-            <span>{language === 'en' ? 'Submit name in sidebar to edit your schedule.' : 'Nhập tên của bạn ở thanh bên để chỉnh sửa lịch.'}</span>
+                  {/* Unavailable list */}
+                  {unavailableUsers.length > 0 && (
+                    <div className="space-y-1 mt-2">
+                      <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
+                      <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                        {unavailableUsers.map((u) => (
+                          <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
+                            <span>{u.name}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
-      </div>
-    </div>
+
+        {/* Grid Legend & Instructions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-border/80">
+          {/* Heatmap Legend */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+              {getTranslation(language, 'overlapIntensity')}:
+            </span>
+            <div className="flex items-center gap-1">
+              <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="0%" />
+              <span className="w-5 h-3 rounded bg-blue-500/20" title="1-20%" />
+              <span className="w-5 h-3 rounded bg-cyan-500/35" title="21-40%" />
+              <span className="w-5 h-3 rounded bg-emerald-500/40" title="41-60%" />
+              <span className="w-5 h-3 rounded bg-lime-500/60" title="61-80%" />
+              <span className="w-5 h-3 rounded bg-emerald-600" title="81-100%" />
+            </div>
+            <span className="text-[10px] text-muted-foreground font-semibold">0% → 100%</span>
+          </div>
+
+          {/* User Help tip */}
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
+            <HelpCircle className="w-3.5 h-3.5 text-primary shrink-0" />
+            {currentUser ? (
+              <span>{touchMode === 'paint' ? getTranslation(language, 'gridHelpTextMobile') : getTranslation(language, 'gridHelpText')}</span>
+            ) : (
+              <span>{language === 'en' ? 'Submit name in sidebar to edit your schedule.' : 'Nhập tên của bạn ở thanh bên để chỉnh sửa lịch.'}</span>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
