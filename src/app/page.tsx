@@ -11,7 +11,7 @@ import Suggestions from '../components/Suggestions';
 import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
-import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3 } from 'lucide-react';
+import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function HomeContent() {
@@ -50,17 +50,22 @@ function HomeContent() {
 
         {/* Branding Hero Banner */}
         <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 z-10">
-          <div className="text-center max-w-2xl mx-auto mb-10 space-y-4">
+          <div className="text-center max-w-2xl mx-auto mb-8 space-y-4 flex flex-col items-center">
+            {/* Pulsing Cafe Cup Logo */}
+            <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 shadow-inner inline-flex items-center justify-center mb-1">
+              <Coffee className="w-10 h-10 text-primary animate-pulse" />
+            </div>
+
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-bold text-primary animate-pulse">
               <Sparkles className="w-3 h-3" />
               <span>
-                {language === 'en' ? 'Next-Gen Scheduling Workspace' : 'Không Gian Lên Lịch Thế Hệ Mới'}
+                {language === 'en' ? 'Frictionless Coffee Scheduler' : 'Lên lịch hẹn Cafe nhanh chóng'}
               </span>
             </div>
             
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white m-0 leading-tight">
               {getTranslation(language, 'landingTitle')}{' '}
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
                 {getTranslation(language, 'landingTitleGrad')}
               </span>
             </h1>
@@ -92,7 +97,7 @@ function HomeContent() {
 
         {/* Clean Footer */}
         <footer className="py-6 border-t border-zinc-900 text-center text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-black/40 z-10 shrink-0">
-          © {new Date().getFullYear()} Modern When2Meet. Pairs with Figma & Linear workflows.
+          © {new Date().getFullYear()} Bữa Nào Cafe? — coffee scheduling made easy.
         </footer>
       </div>
     );
@@ -170,7 +175,7 @@ export default function Home() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold text-sm">
-        Loading scheduler environment...
+        Loading coffee scheduler...
       </div>
     }>
       <HomeContent />

@@ -4,8 +4,15 @@ import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import ThemeToggle from './ThemeToggle';
 import { getTranslation } from '../utils/translations';
-import { Copy, Check, QrCode, Play, Square, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
+import { Check, QrCode, Play, Square, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function Header() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -23,15 +30,32 @@ export default function Header() {
   const setLanguage = useEventStore((state) => state.setLanguage);
 
   const [copied, setCopied] = useState(false);
-  const [showQR, setShowQR] = useState(false);
 
   if (!currentEvent) return null;
 
   const inviteUrl = typeof window !== 'undefined' ? `${window.location.origin}/?event=${currentEvent.id}` : '';
 
-  const handleCopy = () => {
+  const handleShare = () => {
+    const textMessage = language === 'en'
+      ? `☕️ Bữa Nào Cafe? Let's schedule a coffee meeting!\n📅 Topic: ${currentEvent.title}\n👉 Fill in your free hours here:`
+      : `☕️ Bữa Nào Cafe? Lên lịch hẹn cùng mình nhé!\n📅 Chủ đề: ${currentEvent.title}\n👉 Chọn giờ rảnh của bạn ở đây:`;
+    
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      navigator.share({
+        title: '☕️ Bữa Nào Cafe?',
+        text: textMessage,
+        url: inviteUrl,
+      }).catch(() => {
+        handleCopyFallback(textMessage);
+      });
+    } else {
+      handleCopyFallback(textMessage);
+    }
+  };
+
+  const handleCopyFallback = (text: string) => {
     if (typeof navigator !== 'undefined') {
-      navigator.clipboard.writeText(inviteUrl);
+      navigator.clipboard.writeText(`${text}\n${inviteUrl}`);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -144,26 +168,40 @@ export default function Header() {
             </span>
           </Button>
 
-          {/* Copy link */}
+          {/* Copy link / Native Share & QR Code */}
           <div className="flex items-center">
             <Button
-              onClick={handleCopy}
+              onClick={handleShare}
               variant="outline"
               size="sm"
-              className="rounded-r-none border-r-0 font-bold cursor-pointer h-9"
+              className="rounded-l-lg rounded-r-none border-r-0 font-bold cursor-pointer h-9 px-3.5"
+              title={language === 'en' ? 'Share board invitation' : 'Chia sẻ lời mời'}
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
               <span>{copied ? getTranslation(language, 'copiedLink') : getTranslation(language, 'copyInvite')}</span>
             </Button>
-            <Button
-              onClick={() => setShowQR(!showQR)}
-              variant="outline"
-              size="icon"
-              className="rounded-l-none cursor-pointer h-9 w-9"
-              title={getTranslation(language, 'qrCode')}
-            >
-              <QrCode className="w-3.5 h-3.5" />
-            </Button>
+            
+            <Dialog>
+              <DialogTrigger
+                className="inline-flex items-center justify-center rounded-l-none cursor-pointer h-9 w-9 border-l border-border rounded-r-lg bg-background border border-input text-foreground hover:bg-muted dark:hover:bg-zinc-800"
+                title={getTranslation(language, 'qrCode')}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-xs flex flex-col items-center justify-center p-6 bg-card border-border glow-primary rounded-2xl">
+                <DialogHeader className="w-full text-center">
+                  <DialogTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground text-center">
+                    {getTranslation(language, 'qrCode')}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="p-4 bg-white rounded-2xl shadow-sm border border-border mt-2">
+                  {getQRDataUrl()}
+                </div>
+                <span className="text-[10px] text-center text-muted-foreground font-semibold mt-3 max-w-xs leading-normal">
+                  {getTranslation(language, 'scanQr')}
+                </span>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <ThemeToggle />
@@ -180,27 +218,6 @@ export default function Header() {
           </Button>
         </div>
       </div>
-
-      {/* QR Modal Overlay */}
-      {showQR && (
-        <div className="absolute right-4 md:right-24 top-16 bg-white dark:bg-zinc-950 border border-border rounded-xl p-4 shadow-xl z-50 text-slate-800 dark:text-zinc-100 flex flex-col items-center gap-2 max-w-xs transition-all animate-fadeIn glow-primary">
-          <div className="text-center font-bold text-[10px] uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-            {getTranslation(language, 'qrCode')}
-          </div>
-          {getQRDataUrl()}
-          <span className="text-[10px] text-center text-slate-400 dark:text-zinc-500 font-medium">
-            {getTranslation(language, 'scanQr')}
-          </span>
-          <Button
-            onClick={() => setShowQR(false)}
-            variant="outline"
-            size="sm"
-            className="mt-1 font-bold cursor-pointer w-full text-center text-foreground"
-          >
-            {language === 'en' ? 'Close' : 'Đóng'}
-          </Button>
-        </div>
-      )}
 
       {/* Editing Toolbelt (displays if logged in) */}
       {currentUser && (
