@@ -248,12 +248,12 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       intensity = 20 + ((overlapCount - minOverlap) / (maxOverlap - minOverlap)) * 80;
     }
 
-    if (intensity <= 20) return 'bg-blue-500/20 text-blue-800 dark:text-blue-300';
-    if (intensity <= 40) return 'bg-cyan-500/35 text-cyan-800 dark:text-cyan-300';
-    if (intensity <= 60) return 'bg-emerald-500/40 text-emerald-800 dark:text-emerald-300';
-    if (intensity <= 80) return 'bg-lime-500/60 text-lime-900 dark:text-lime-200';
-    
-    return 'bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]';
+    // 5 clearly distinct bands — each with a strong, unique hue
+    if (intensity <= 20) return 'bg-blue-900/70 text-blue-200 dark:bg-blue-950/80 dark:text-blue-300 ring-1 ring-inset ring-blue-700/30';
+    if (intensity <= 40) return 'bg-sky-600/60 text-sky-100 dark:bg-sky-700/70 dark:text-sky-200 ring-1 ring-inset ring-sky-500/30';
+    if (intensity <= 60) return 'bg-teal-500/70 text-white dark:bg-teal-600/75 ring-1 ring-inset ring-teal-400/40';
+    if (intensity <= 80) return 'bg-lime-500 text-lime-950 dark:bg-lime-500/90 ring-1 ring-inset ring-lime-400/50 shadow-[0_0_8px_rgba(132,204,22,0.3)]';
+    return 'bg-emerald-400 text-emerald-950 ring-1 ring-inset ring-emerald-300/60 shadow-[0_0_14px_rgba(52,211,153,0.5)] font-black';
   };
 
   const handleMouseMove = (slotId: string, e: React.MouseEvent) => {
@@ -399,7 +399,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         {/* Main Grid View */}
         <div className="overflow-auto flex-1 min-h-0 border border-border rounded-xl relative bg-card">
           <table
-            className="w-full border-collapse table-fixed select-none"
+            className="w-full min-h-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
             onMouseLeave={() => setHoveredSlot(null)}
           >
@@ -507,14 +507,14 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
               {getTranslation(language, 'overlapIntensity')}:
             </span>
             <div className="flex items-center gap-1">
-              <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="0%" />
-              <span className="w-5 h-3 rounded bg-blue-500/20" title="1-20%" />
-              <span className="w-5 h-3 rounded bg-cyan-500/35" title="21-40%" />
-              <span className="w-5 h-3 rounded bg-emerald-500/40" title="41-60%" />
-              <span className="w-5 h-3 rounded bg-lime-500/60" title="61-80%" />
-              <span className="w-5 h-3 rounded bg-emerald-600" title="81-100%" />
+              <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="None" />
+              <span className="w-5 h-3 rounded bg-blue-900/70 ring-1 ring-inset ring-blue-700/30" title="Low" />
+              <span className="w-5 h-3 rounded bg-sky-600/60 ring-1 ring-inset ring-sky-500/30" title="Low-Mid" />
+              <span className="w-5 h-3 rounded bg-teal-500/70 ring-1 ring-inset ring-teal-400/40" title="Mid" />
+              <span className="w-5 h-3 rounded bg-lime-500 ring-1 ring-inset ring-lime-400/50" title="High" />
+              <span className="w-5 h-3 rounded bg-emerald-400 ring-1 ring-inset ring-emerald-300/60" title="Peak" />
             </div>
-            <span className="text-[10px] text-muted-foreground font-semibold">0% → 100%</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">Low → Peak</span>
           </div>
 
           {/* User Help tip */}
