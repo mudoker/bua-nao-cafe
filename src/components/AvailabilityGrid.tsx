@@ -388,7 +388,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 return (
                   <tr key={timeStr} className="border-b border-border/50 last:border-0">
                     {/* Left Column (Sticky Time) */}
-                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-40">
+                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-[100px]">
                       {formattedTime}
                     </td>
 
@@ -407,7 +407,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                             render={
                               <td
                                 data-slot-id={slotId}
-                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-40 ${cellBg} ${
+                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-[100px] ${cellBg} ${
                                   idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
                                 } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
