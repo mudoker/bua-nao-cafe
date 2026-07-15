@@ -363,7 +363,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
         {/* Main Grid View */}
         <div className="overflow-auto max-h-[440px] border border-border rounded-xl relative bg-card">
-          <table className="w-full border-collapse table-fixed select-none" onMouseLeave={() => setHoveredSlot(null)}>
+          <table
+            className="w-full border-collapse table-fixed select-none"
+            style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
+            onMouseLeave={() => setHoveredSlot(null)}
+          >
             {/* Header Row (Dates) */}
             <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
               <tr>
@@ -427,6 +431,9 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const slotId = `${dateStr}T${timeStr}`;
                       const isFinalized = currentEvent.finalizedSlot === slotId;
                       const cellBg = getCellBgClass(slotId);
+                      const { percentage } = getCellDetails(slotId);
+                      const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
+                      const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
                       return (
                         <td
@@ -434,7 +441,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                           data-slot-id={slotId}
                           className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
                             idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                          }`}
+                          } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
                           onMouseDown={(e) => handleMouseDown(slotId, e)}
                           onMouseEnter={() => handleMouseEnterCell(slotId)}
                           onMouseMove={(e) => handleMouseMove(slotId, e)}
@@ -455,85 +462,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
               })}
             </tbody>
           </table>
-
-          {/* Floating Tooltip Card */}
-          {hoveredSlot && (
-            (() => {
-              const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(hoveredSlot);
-              const isMeAvailable = currentUser && availability[currentUser.id]?.includes(hoveredSlot);
-              const isFinalized = currentEvent.finalizedSlot === hoveredSlot;
-
-              return (
-                <div
-                  className="absolute bg-card/95 border border-border p-3 rounded-xl shadow-xl max-w-[200px] z-40 text-xs pointer-events-none transition-opacity duration-150 backdrop-blur-sm border-border"
-                  style={{
-                    left: tooltipPos.x,
-                    top: tooltipPos.y,
-                  }}
-                >
-                  <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
-                    <span>{formatSlotDate(hoveredSlot)}</span>
-                    <span>@</span>
-                    <span>{formatSlotTime(hoveredSlot)}</span>
-                  </div>
-
-                  {isFinalized && (
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
-                      <Award className="w-3.5 h-3.5 fill-current" />
-                      <span>{getTranslation(language, 'finalized')}</span>
-                    </div>
-                  )}
-
-                  {/* Overlap Summary */}
-                  <div className="flex items-center gap-1.5 mb-2 font-bold">
-                    <span className="text-primary">
-                      {overlapCount} / {totalCount} {getTranslation(language, 'available')}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
-                  </div>
-
-                  {/* Your state indicator */}
-                  {currentUser && (
-                    <div className="mb-2 text-[10px] font-bold">
-                      <span>{getTranslation(language, 'yourAvailability')}: </span>
-                      <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
-                        {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Available list */}
-                  {availableUsers.length > 0 && (
-                    <div className="space-y-1">
-                      <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
-                      <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                        {availableUsers.map((u) => (
-                          <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
-                            <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
-                            <span>{u.name}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Unavailable list */}
-                  {unavailableUsers.length > 0 && (
-                    <div className="space-y-1 mt-2">
-                      <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
-                      <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                        {unavailableUsers.map((u) => (
-                          <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
-                            <span>{u.name}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()
-          )}
         </div>
 
         {/* Grid Legend & Instructions */}
@@ -565,6 +493,85 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           </div>
         </div>
       </CardContent>
+
+      {/* Floating Tooltip Card */}
+      {hoveredSlot && (
+        (() => {
+          const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(hoveredSlot);
+          const isMeAvailable = currentUser && availability[currentUser.id]?.includes(hoveredSlot);
+          const isFinalized = currentEvent.finalizedSlot === hoveredSlot;
+
+          return (
+            <div
+              className="absolute bg-card/95 border border-border p-3 rounded-xl shadow-xl max-w-[200px] z-40 text-xs pointer-events-none transition-opacity duration-150 backdrop-blur-sm border-border"
+              style={{
+                left: tooltipPos.x,
+                top: tooltipPos.y,
+              }}
+            >
+              <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
+                <span>{formatSlotDate(hoveredSlot)}</span>
+                <span>@</span>
+                <span>{formatSlotTime(hoveredSlot)}</span>
+              </div>
+
+              {isFinalized && (
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
+                  <Award className="w-3.5 h-3.5 fill-current" />
+                  <span>{getTranslation(language, 'finalized')}</span>
+                </div>
+              )}
+
+              {/* Overlap Summary */}
+              <div className="flex items-center gap-1.5 mb-2 font-bold">
+                <span className="text-primary">
+                  {overlapCount} / {totalCount} {getTranslation(language, 'available')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
+              </div>
+
+              {/* Your state indicator */}
+              {currentUser && (
+                <div className="mb-2 text-[10px] font-bold">
+                  <span>{getTranslation(language, 'yourAvailability')}: </span>
+                  <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
+                    {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                  </span>
+                </div>
+              )}
+
+              {/* Available list */}
+              {availableUsers.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
+                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                    {availableUsers.map((u) => (
+                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
+                        <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
+                        <span>{u.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unavailable list */}
+              {unavailableUsers.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
+                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                    {unavailableUsers.map((u) => (
+                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
+                        <span>{u.name}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()
+      )}
     </Card>
   );
 }

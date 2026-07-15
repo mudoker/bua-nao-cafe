@@ -290,32 +290,6 @@ export default function Sidebar({ className }: { className?: string }) {
           )}
         </CardContent>
       </Card>
-
-      {/* Activity Log Feed Card */}
-      <Card className="border-border bg-card shadow-sm flex-1 min-h-[200px] flex flex-col">
-        <CardHeader className="pb-3 space-y-0">
-          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
-            <Activity className="w-4 h-4 text-primary" />
-            <span>{getTranslation(language, 'realtimeActivity')}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto space-y-2.5 max-h-56 pr-1 font-semibold">
-          {recentActivity.length === 0 ? (
-            <div className="text-center text-[11px] text-muted-foreground/60 py-6">
-              {getTranslation(language, 'listeningActivity')}
-            </div>
-          ) : (
-            recentActivity.map((log) => (
-              <div key={log.id} className="text-xs border-b border-border/40 pb-1.5 last:border-0">
-                <p className="text-foreground leading-snug">{log.message}</p>
-                <span className="text-[9px] text-muted-foreground">
-                  {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </span>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
     </aside>
   );
 }
