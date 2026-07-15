@@ -22,6 +22,7 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
   const participants = useEventStore((state) => state.participants);
   const joinAsParticipant = useEventStore((state) => state.joinAsParticipant);
   const resetEvent = useEventStore((state) => state.resetEvent);
+  const logout = useEventStore((state) => state.logout);
   const language = useEventStore((state) => state.language);
 
   const [name, setName] = useState(account?.name || '');
@@ -53,12 +54,8 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
 
   const handleBack = () => {
     resetEvent();
+    logout();
     if (typeof window === 'undefined') return;
-
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
 
     const url = new URL(window.location.href);
     url.searchParams.delete('event');

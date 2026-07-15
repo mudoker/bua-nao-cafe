@@ -5,17 +5,6 @@ import { Language } from '../utils/translations';
 import confetti from 'canvas-confetti';
 import { EventState } from './useEventStore.types';
 
-const saveToLocalStorage = (state: {
-  currentEvent: EventDetails | null;
-  participants: Participant[];
-  availability: AvailabilityMap;
-  currentUser: Participant | null;
-}) => {
-  if (state.currentEvent) {
-    localStorage.setItem(`event_${state.currentEvent.id}`, JSON.stringify(state));
-  }
-};
-
 const getStoredAccount = (): AccountSession | null => {
   if (typeof window === 'undefined') return null;
   const raw = localStorage.getItem('bua_nao_account');
@@ -245,7 +234,6 @@ export const useEventStore = create<EventState>((set, get) => {
         currentUser: null,
       };
 
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
 
       return id;
@@ -261,7 +249,7 @@ export const useEventStore = create<EventState>((set, get) => {
           ? data.participants.find((p: Participant) => {
               const participantAccount = p.accountName || normalizeAccountName(p.name);
               if (participantAccount !== normalizeAccountName(account.name)) return false;
-              return p.password ? p.password === account.password : true;
+              return p.password ? p.password === account.password : !account.password;
             }) || null
           : null;
 
@@ -276,19 +264,6 @@ export const useEventStore = create<EventState>((set, get) => {
         });
       } catch (error) {
         console.error('Failed to fetch event:', error);
-        // Fallback to local storage
-        const saved = localStorage.getItem(`event_${eventId}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          set({
-            currentEvent: parsed.currentEvent,
-            participants: parsed.participants,
-            availability: parsed.availability,
-            currentUser: null,
-            undoStack: [],
-            redoStack: [],
-          });
-        }
       }
     },
 
@@ -317,7 +292,7 @@ export const useEventStore = create<EventState>((set, get) => {
       });
 
       if (existing) {
-        if (existing.password && existing.password !== password) {
+        if (existing.password ? existing.password !== password : Boolean(password)) {
           throw new Error('PASSWORD_MISMATCH');
         }
 
@@ -347,7 +322,6 @@ export const useEventStore = create<EventState>((set, get) => {
           availability,
           currentUser: updated,
         };
-        saveToLocalStorage(stateToSave);
         syncState(stateToSave);
         get().loadAccountEvents();
 
@@ -389,7 +363,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability: updatedAvailability,
         currentUser: newParticipant,
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
       get().loadAccountEvents();
 
@@ -432,7 +405,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability: updatedAvailability,
         currentUser: { ...currentUser, isCompleted: true },
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
 
       // Confetti feedback when submitting for the first time
@@ -504,11 +476,10 @@ export const useEventStore = create<EventState>((set, get) => {
         redoStack: newRedoStack,
       });
 
-      saveToLocalStorage({
+      syncState({
         currentEvent,
         participants,
         availability: updatedAvailability,
-        currentUser,
       });
 
       get().addActivity(`${currentUser.name} undid an edit.`);
@@ -533,11 +504,10 @@ export const useEventStore = create<EventState>((set, get) => {
         redoStack: newRedoStack,
       });
 
-      saveToLocalStorage({
+      syncState({
         currentEvent,
         participants,
         availability: updatedAvailability,
-        currentUser,
       });
 
       get().addActivity(`${currentUser.name} redid an edit.`);
@@ -586,7 +556,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability,
         currentUser: updatedUser,
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
 
       const p = participants.find(p => p.id === id);
@@ -620,7 +589,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability: newAvailability,
         currentUser: updatedUser,
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
 
       if (p) {
@@ -660,7 +628,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability,
         currentUser,
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
 
       if (slotId) {
@@ -688,7 +655,6 @@ export const useEventStore = create<EventState>((set, get) => {
         availability,
         currentUser,
       };
-      saveToLocalStorage(stateToSave);
       syncState(stateToSave);
     },
 

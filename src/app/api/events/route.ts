@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       const participant = participants.find((p) => {
         const participantAccount = p.accountName || p.name.trim().toLowerCase();
         if (participantAccount !== name) return false;
-        return p.password ? p.password === password : true;
+        return p.password ? p.password === password : !password;
       });
 
       if (!participant) return null;
