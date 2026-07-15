@@ -386,7 +386,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
 
                 return (
-                  <tr key={timeStr} className="border-b border-border/50 last:border-0 sm:min-h-20">
+                  <tr key={timeStr} className="border-b border-border/50 last:border-0 sm:min-h-40">
                     {/* Left Column (Sticky Time) */}
                     <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
                       {formattedTime}
@@ -452,7 +452,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
                               {currentUser && (
                                 <div className="mb-2 text-[10px] font-bold">
-                                  <span>{getTranslation(language, 'yourAvailability')}: </span>
+                                  <span className="text-foreground">{getTranslation(language, 'yourAvailability')}: </span>
                                   <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
                                     {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
                                   </span>
