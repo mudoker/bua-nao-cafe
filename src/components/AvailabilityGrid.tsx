@@ -54,6 +54,34 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     currentEvent.slotDuration
   );
 
+  // Find min and max overlap count across all active slots in the grid
+  const { maxOverlap, minOverlap } = React.useMemo(() => {
+    let maxVal = 0;
+    let minVal = Infinity;
+    
+    // Helper to count votes for a slot
+    const getSlotOverlapCount = (slotId: string) => {
+      const activeParticipants = participants.filter((p) => {
+        if (filters.selectedParticipantIds.length > 0) {
+          return filters.selectedParticipantIds.includes(p.id);
+        }
+        return p.isCompleted;
+      });
+      return activeParticipants.filter((p) => availability[p.id]?.includes(slotId)).length;
+    };
+
+    slots.forEach((slotId) => {
+      const count = getSlotOverlapCount(slotId);
+      if (count > maxVal) maxVal = count;
+      if (count > 0 && count < minVal) minVal = count;
+    });
+
+    return {
+      maxOverlap: maxVal,
+      minOverlap: minVal === Infinity ? 0 : minVal,
+    };
+  }, [slots, participants, availability, filters.selectedParticipantIds]);
+
   // Clean mobile slide bounds
   useEffect(() => {
     if (activeMobileDateIndex >= filteredDates.length) {
@@ -199,24 +227,31 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   };
 
   const getCellBgClass = (slotId: string) => {
-    const { percentage, overlapCount } = getCellDetails(slotId);
+    const { overlapCount } = getCellDetails(slotId);
 
     if (currentEvent.finalizedSlot === slotId) {
       return 'bg-violet-600 border border-amber-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.8)] pulse-emerald';
     }
 
-    const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
-
-    if (percentage === 0 && overlapCount === 0) {
+    if (overlapCount === 0) {
+      const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
       return isMeAvailable
         ? 'bg-primary/20 border border-primary/45'
         : 'bg-muted/40 hover:bg-muted/65 dark:bg-muted/20 dark:hover:bg-muted/30';
     }
 
-    if (percentage <= 20) return 'bg-blue-500/20 text-blue-800 dark:text-blue-300';
-    if (percentage <= 40) return 'bg-cyan-500/35 text-cyan-800 dark:text-cyan-300';
-    if (percentage <= 60) return 'bg-emerald-500/40 text-emerald-800 dark:text-emerald-300';
-    if (percentage <= 80) return 'bg-lime-500/60 text-lime-900 dark:text-lime-200';
+    // Dynamic scale based on min/max overlap in active view
+    let intensity = 0;
+    if (maxOverlap === minOverlap) {
+      intensity = 100;
+    } else {
+      intensity = 20 + ((overlapCount - minOverlap) / (maxOverlap - minOverlap)) * 80;
+    }
+
+    if (intensity <= 20) return 'bg-blue-500/20 text-blue-800 dark:text-blue-300';
+    if (intensity <= 40) return 'bg-cyan-500/35 text-cyan-800 dark:text-cyan-300';
+    if (intensity <= 60) return 'bg-emerald-500/40 text-emerald-800 dark:text-emerald-300';
+    if (intensity <= 80) return 'bg-lime-500/60 text-lime-900 dark:text-lime-200';
     
     return 'bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]';
   };
