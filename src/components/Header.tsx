@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import ThemeToggle from './ThemeToggle';
-import { Share2, LogOut, Clock, Shield } from 'lucide-react';
+import { Home, Share2, LogOut, Clock, Shield } from 'lucide-react';
+import EventEditDialog from './event-editor/EventEditDialog';
 import HeaderShareControls from './header/HeaderShareControls';
 import HeaderToolbelt from './header/HeaderToolbelt';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,9 @@ import { Button } from '@/components/ui/button';
 export default function Header() {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const currentUser = useEventStore((state) => state.currentUser);
+  const resetEvent = useEventStore((state) => state.resetEvent);
   const logout = useEventStore((state) => state.logout);
+  const updateEventDetails = useEventStore((state) => state.updateEventDetails);
   const undo = useEventStore((state) => state.undo);
   const redo = useEventStore((state) => state.redo);
   const clearCurrentAvailability = useEventStore((state) => state.clearCurrentAvailability);
@@ -53,6 +56,15 @@ export default function Header() {
     }
   };
 
+  const handleBackHome = () => {
+    resetEvent();
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('event');
+    window.history.pushState({}, '', url.toString());
+  };
+
   return (
     <header className="w-full border-b border-border/80 bg-card/75 backdrop-blur-md sticky top-0 z-50 px-4 py-3.5 md:px-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -87,6 +99,20 @@ export default function Header() {
 
         {/* Action controls */}
         <div className="flex flex-wrap items-center gap-2.5">
+          <Button
+            onClick={handleBackHome}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1 font-bold cursor-pointer h-9"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>{language === 'en' ? 'Home' : 'Trang chủ'}</span>
+          </Button>
+
+          {currentUser?.isHost && (
+            <EventEditDialog event={currentEvent} language={language} onSave={updateEventDetails} />
+          )}
+
           {/* Language Selector */}
           <div className="flex items-center bg-muted/60 dark:bg-muted/30 rounded-lg p-0.5 border border-border text-xs shrink-0 font-bold">
             <button
