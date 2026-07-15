@@ -1,75 +1,9 @@
 import { create } from 'zustand';
-import { AccountEventSummary, AccountSession, Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
+import { AccountSession, Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
 import { generateSlots } from '../utils/time';
 import { Language } from '../utils/translations';
 import confetti from 'canvas-confetti';
-
-type FilterKey = keyof EventState['filters'];
-type FilterValue<K extends FilterKey> = EventState['filters'][K];
-
-interface EventState {
-  account: AccountSession | null;
-  accountEvents: AccountEventSummary[];
-  currentEvent: EventDetails | null;
-  participants: Participant[];
-  availability: AvailabilityMap;
-  currentUser: Participant | null;
-  selectedSlots: string[]; // local selection for active painting
-  
-  // History for undo/redo
-  undoStack: string[][];
-  redoStack: string[][];
-
-  // Language switcher
-  language: Language;
-  setLanguage: (lang: Language) => void;
-
-  // Filters
-  filters: {
-    selectedParticipantIds: string[]; // empty = show all
-    hideWeekend: boolean;
-    workingHoursOnly: boolean;
-    minOverlapPercentage: number; // e.g. 0 to 100
-  };
-
-  recentActivity: { id: string; message: string; timestamp: Date }[];
-
-  // Actions
-  login: (name: string, password?: string) => Promise<void>;
-  logout: () => void;
-  loadAccountEvents: () => Promise<void>;
-  createEvent: (details: Omit<EventDetails, 'id' | 'finalizedSlot'>) => string;
-  loadEvent: (eventId: string) => Promise<void>;
-  resetEvent: () => void;
-  joinAsParticipant: (name: string, color: string, avatar: string, password?: string, isHost?: boolean) => Participant;
-  submitAvailability: (slots: string[]) => void;
-  toggleSlotAvailability: (slotId: string) => void;
-  paintSlotsAvailability: (slotIds: string[], available: boolean) => void;
-  
-  // Undo/Redo actions
-  undo: () => void;
-  redo: () => void;
-  clearCurrentAvailability: () => void;
-  fillCurrentAvailability: () => void;
-
-  // Host operations
-  updateParticipant: (id: string, updates: Partial<Participant>) => void;
-  removeParticipant: (id: string) => void;
-  lockResponses: (lock: boolean) => void;
-  closeEvent: () => void;
-  finalizeSlot: (slotId: string | null) => void;
-  updateEventDetails: (updates: Partial<EventDetails>) => void;
-
-  // Filter actions
-  toggleParticipantFilter: (id: string) => void;
-  clearFilters: () => void;
-  setFilter: <K extends FilterKey>(key: K, value: FilterValue<K>) => void;
-
-  addActivity: (message: string) => void;
-  
-  // Computations
-  getRecommendations: () => Recommendation[];
-}
+import { EventState } from './useEventStore.types';
 
 const saveToLocalStorage = (state: {
   currentEvent: EventDetails | null;
@@ -375,20 +309,22 @@ export const useEventStore = create<EventState>((set, get) => {
       const { account, currentEvent, participants, availability } = get();
       if (!currentEvent) throw new Error('No active event');
 
-      // Check if participant already exists by name
       const normalizedAccountName = normalizeAccountName(account?.name || name);
+      const normalizedInputName = normalizeAccountName(name);
       const existing = participants.find((p) => {
         const participantAccount = p.accountName || normalizeAccountName(p.name);
-        return participantAccount === normalizedAccountName;
+        return participantAccount === normalizedAccountName || normalizeAccountName(p.name) === normalizedInputName;
       });
+
       if (existing) {
-        // If password is correct or if existing has no password
         if (existing.password && existing.password !== password) {
           throw new Error('PASSWORD_MISMATCH');
         }
 
-        // Log in as existing
-        // Update password if they provided one but existing didn't have one
+        if (existing.accountName && existing.accountName !== normalizedAccountName) {
+          throw new Error('USERNAME_TAKEN');
+        }
+
         const updated = {
           ...existing,
           accountName: existing.accountName || normalizedAccountName,
