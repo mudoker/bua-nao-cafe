@@ -138,7 +138,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
       bufferMinutes,
     });
 
-    joinAsParticipant(organizer.trim(), 'indigo', '👑', true);
+    joinAsParticipant(organizer.trim(), 'indigo', '👑', undefined, true);
     onCreated(eventId);
   };
 

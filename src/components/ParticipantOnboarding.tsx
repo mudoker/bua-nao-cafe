@@ -19,6 +19,7 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
   const language = useEventStore((state) => state.language);
 
   const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [error, setError] = useState('');
@@ -36,8 +37,21 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
       return;
     }
     setError('');
-    joinAsParticipant(name.trim(), selectedColor, selectedAvatar);
-    if (onJoinSuccess) onJoinSuccess();
+
+    try {
+      joinAsParticipant(name.trim(), selectedColor, selectedAvatar, password || undefined);
+      if (onJoinSuccess) onJoinSuccess();
+    } catch (err: any) {
+      if (err.message === 'PASSWORD_MISMATCH') {
+        setError(
+          language === 'en'
+            ? 'Incorrect password for this user. If this name is yours, enter the correct password. Otherwise, please choose a different name.'
+            : 'Mật khẩu không đúng cho thành viên này. Nếu đây là tên của bạn, hãy nhập lại mật khẩu. Nếu không, vui lòng chọn một tên khác.'
+        );
+      } else {
+        setError(err.message || 'An error occurred.');
+      }
+    }
   };
 
   const getColorClass = (colorName: string) => {
@@ -93,6 +107,29 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
               className="font-semibold text-foreground h-11 px-3.5"
             />
             {error && <p className="text-xs text-destructive font-bold mt-1">{error}</p>}
+          </div>
+
+          {/* Password input */}
+          <div className="space-y-2">
+            <label htmlFor="participant-password" className="text-xs font-bold text-foreground uppercase tracking-wider block">
+              {language === 'en' ? 'Password (Optional)' : 'Mật khẩu (Tùy chọn)'}
+            </label>
+            <Input
+              id="participant-password"
+              type="password"
+              placeholder={language === 'en' ? 'Protects your schedule edits' : 'Bảo vệ lịch chỉnh sửa của bạn'}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError('');
+              }}
+              className="font-semibold text-foreground h-11 px-3.5"
+            />
+            <p className="text-[10px] text-muted-foreground font-semibold leading-tight">
+              {language === 'en' 
+                ? 'Create a password to keep others from editing your slots, or enter your password to reload your schedule.' 
+                : 'Tạo mật khẩu để tránh người khác chỉnh sửa lịch của bạn, hoặc nhập lại mật khẩu để tải lịch đã lưu.'}
+            </p>
           </div>
 
           {/* Color Palette Selector */}

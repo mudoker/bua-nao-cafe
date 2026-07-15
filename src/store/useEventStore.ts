@@ -32,9 +32,9 @@ interface EventState {
 
   // Actions
   createEvent: (details: Omit<EventDetails, 'id' | 'finalizedSlot'>) => string;
-  loadEvent: (eventId: string) => void;
+  loadEvent: (eventId: string) => Promise<void>;
   resetEvent: () => void;
-  joinAsParticipant: (name: string, color: string, avatar: string, isHost?: boolean) => Participant;
+  joinAsParticipant: (name: string, color: string, avatar: string, password?: string, isHost?: boolean) => Participant;
   submitAvailability: (slots: string[]) => void;
   toggleSlotAvailability: (slotId: string) => void;
   paintSlotsAvailability: (slotIds: string[], available: boolean) => void;
@@ -73,6 +73,20 @@ const saveToLocalStorage = (state: {
   if (state.currentEvent) {
     localStorage.setItem(`event_${state.currentEvent.id}`, JSON.stringify(state));
   }
+};
+
+const syncState = (state: {
+  currentEvent: EventDetails | null;
+  participants: Participant[];
+  availability: AvailabilityMap;
+}) => {
+  const { currentEvent, participants, availability } = state;
+  if (!currentEvent) return;
+  fetch(`/api/events/${currentEvent.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentEvent, participants, availability }),
+  }).catch(err => console.error('Failed to sync state:', err));
 };
 
 export const useEventStore = create<EventState>((set, get) => {
@@ -217,29 +231,60 @@ export const useEventStore = create<EventState>((set, get) => {
         recentActivity: [{ id: 'system', message: `Event "${newEvent.title}" created.`, timestamp: new Date() }]
       });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent: newEvent,
         participants: [],
         availability: {},
         currentUser: null,
-      });
+      };
+
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       return id;
     },
 
-    loadEvent: (eventId) => {
-      const saved = localStorage.getItem(`event_${eventId}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
+    loadEvent: async (eventId) => {
+      try {
+        const res = await fetch(`/api/events/${eventId}`);
+        if (!res.ok) throw new Error('Event not found');
+        const data = await res.json();
+
+        // Check local storage to identify active browser session user
+        let localUser = null;
+        const saved = localStorage.getItem(`event_${eventId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // Only use local user if they exist in the fresh database participants list
+          if (parsed.currentUser && data.participants.some((p: any) => p.id === parsed.currentUser.id)) {
+            localUser = parsed.currentUser;
+          }
+        }
+
         set({
-          currentEvent: parsed.currentEvent,
-          participants: parsed.participants,
-          availability: parsed.availability,
-          currentUser: parsed.currentUser,
-          undoStack: parsed.currentUser ? [parsed.availability[parsed.currentUser.id] || []] : [],
+          currentEvent: data.currentEvent,
+          participants: data.participants,
+          availability: data.availability,
+          currentUser: localUser,
+          undoStack: localUser ? [data.availability[localUser.id] || []] : [],
           redoStack: [],
-          recentActivity: [{ id: 'system', message: `Loaded event "${parsed.currentEvent.title}"`, timestamp: new Date() }]
+          recentActivity: [{ id: 'system', message: `Loaded event "${data.currentEvent.title}"`, timestamp: new Date() }]
         });
+      } catch (error) {
+        console.error('Failed to fetch event:', error);
+        // Fallback to local storage
+        const saved = localStorage.getItem(`event_${eventId}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          set({
+            currentEvent: parsed.currentEvent,
+            participants: parsed.participants,
+            availability: parsed.availability,
+            currentUser: parsed.currentUser,
+            undoStack: parsed.currentUser ? [parsed.availability[parsed.currentUser.id] || []] : [],
+            redoStack: [],
+          });
+        }
       }
     },
 
@@ -256,15 +301,26 @@ export const useEventStore = create<EventState>((set, get) => {
       });
     },
 
-    joinAsParticipant: (name, color, avatar, isHost = false) => {
+    joinAsParticipant: (name, color, avatar, password, isHost = false) => {
       const { currentEvent, participants, availability } = get();
       if (!currentEvent) throw new Error('No active event');
 
       // Check if participant already exists by name
       const existing = participants.find(p => p.name.toLowerCase() === name.toLowerCase());
       if (existing) {
+        // If password is correct or if existing has no password
+        if (existing.password && existing.password !== password) {
+          throw new Error('PASSWORD_MISMATCH');
+        }
+
         // Log in as existing
-        const updated = { ...existing, isOnline: true, lastActive: new Date().toISOString() };
+        // Update password if they provided one but existing didn't have one
+        const updated = {
+          ...existing,
+          isOnline: true,
+          lastActive: new Date().toISOString(),
+          password: existing.password || password || undefined
+        };
         const updatedParticipants = participants.map(p => p.id === existing.id ? updated : p);
         
         set({
@@ -274,12 +330,14 @@ export const useEventStore = create<EventState>((set, get) => {
           redoStack: [],
         });
         
-        saveToLocalStorage({
+        const stateToSave = {
           currentEvent,
           participants: updatedParticipants,
           availability,
           currentUser: updated,
-        });
+        };
+        saveToLocalStorage(stateToSave);
+        syncState(stateToSave);
 
         get().addActivity(`${name} rejoined the event.`);
         return updated;
@@ -295,6 +353,7 @@ export const useEventStore = create<EventState>((set, get) => {
         lastActive: new Date().toISOString(),
         isCompleted: false,
         isHost,
+        password: password || undefined,
       };
 
       const updatedParticipants = [...participants, newParticipant];
@@ -311,12 +370,14 @@ export const useEventStore = create<EventState>((set, get) => {
         redoStack: [],
       });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent,
         participants: updatedParticipants,
         availability: updatedAvailability,
         currentUser: newParticipant,
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       get().addActivity(`${name} joined the event.`);
       return newParticipant;
@@ -351,12 +412,14 @@ export const useEventStore = create<EventState>((set, get) => {
         redoStack: [], // clear redo on new action
       });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent,
         participants: updatedParticipants,
         availability: updatedAvailability,
         currentUser: { ...currentUser, isCompleted: true },
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       // Confetti feedback when submitting for the first time
       const wasCompleted = currentUser.isCompleted;
@@ -503,12 +566,14 @@ export const useEventStore = create<EventState>((set, get) => {
         currentUser: updatedUser,
       });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent,
         participants: updatedParticipants,
         availability,
         currentUser: updatedUser,
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       const p = participants.find(p => p.id === id);
       if (p) {
@@ -535,12 +600,14 @@ export const useEventStore = create<EventState>((set, get) => {
         currentUser: updatedUser,
       });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent,
         participants: updatedParticipants,
         availability: newAvailability,
         currentUser: updatedUser,
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       if (p) {
         get().addActivity(`Participant "${p.name}" removed by host.`);
@@ -573,12 +640,14 @@ export const useEventStore = create<EventState>((set, get) => {
 
       set({ currentEvent: updatedEvent });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent: updatedEvent,
         participants,
         availability,
         currentUser,
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
 
       if (slotId) {
         confetti({
@@ -599,12 +668,14 @@ export const useEventStore = create<EventState>((set, get) => {
       const updated = { ...currentEvent, ...updates };
       set({ currentEvent: updated });
 
-      saveToLocalStorage({
+      const stateToSave = {
         currentEvent: updated,
         participants,
         availability,
         currentUser,
-      });
+      };
+      saveToLocalStorage(stateToSave);
+      syncState(stateToSave);
     },
 
     toggleParticipantFilter: (id) => {

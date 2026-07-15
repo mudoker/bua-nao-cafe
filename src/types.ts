@@ -7,6 +7,7 @@ export interface Participant {
   lastActive: string; // ISO string
   isCompleted: boolean;
   isHost: boolean;
+  password?: string; // Optional password to protect their availability grid
 }
 
 export interface EventDetails {

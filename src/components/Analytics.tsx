@@ -286,7 +286,7 @@ export default function Analytics({ className }: { className?: string }) {
               <span>{getTranslation(language, 'peakHours')}</span>
             </div>
 
-            <div className="h-44 bg-muted/10 border border-border/40 rounded-xl p-3.5 flex flex-col justify-between relative overflow-hidden">
+            <div className="h-44 bg-muted/10 border border-border/40 rounded-xl p-3.5 flex flex-col justify-between relative overflow-visible">
               <div className="flex-1 w-full relative">
                 <svg className="w-full h-full" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
                   <defs>

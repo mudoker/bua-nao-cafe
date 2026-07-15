@@ -34,6 +34,42 @@ function HomeContent() {
     }
   }, [eventId, loadEvent]);
 
+  // Periodic polling for real-time collaboration updates
+  useEffect(() => {
+    if (!eventId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/events/${eventId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const store = useEventStore.getState();
+        
+        // Simple comparison to prevent unnecessary state resets
+        if (
+          JSON.stringify(store.participants) !== JSON.stringify(data.participants) ||
+          JSON.stringify(store.availability) !== JSON.stringify(data.availability) ||
+          JSON.stringify(store.currentEvent) !== JSON.stringify(data.currentEvent)
+        ) {
+          useEventStore.setState({
+            currentEvent: data.currentEvent,
+            participants: data.participants,
+            availability: {
+              ...data.availability,
+              // Preserve the currentUser's current availability from store if they are logged in
+              ...(store.currentUser ? { [store.currentUser.id]: store.availability[store.currentUser.id] || [] } : {})
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Failed to poll updates:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [eventId]);
+
   // Clean state when creator creates an event
   const handleEventCreated = (id: string) => {
     const url = new URL(window.location.href);
