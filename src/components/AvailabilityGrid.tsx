@@ -258,6 +258,18 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     return map[colorName] || 'bg-slate-500';
   };
 
+  if (filteredDates.length === 0) {
+    return (
+      <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)}>
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground font-semibold text-xs">
+          <CalendarDays className="w-8 h-8 text-muted-foreground/30 mb-2" />
+          <span>{language === 'en' ? 'No dates match the current filters.' : 'Không có ngày nào khớp với bộ lọc hiện tại.'}</span>
+          <span className="text-[10px] text-muted-foreground/60 mt-1">{language === 'en' ? 'Try enabling weekends in filters.' : 'Hãy thử hiển thị cuối tuần trong bộ lọc.'}</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)} ref={gridContainerRef}>
       {/* Grid Controls */}
