@@ -3,16 +3,10 @@
 import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import ThemeToggle from './ThemeToggle';
-import { getTranslation } from '../utils/translations';
-import { Check, QrCode, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
+import { Share2, LogOut, Clock, Shield } from 'lucide-react';
+import HeaderShareControls from './header/HeaderShareControls';
+import HeaderToolbelt from './header/HeaderToolbelt';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 export default function Header() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -57,38 +51,6 @@ export default function Header() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const getQRDataUrl = () => {
-    return (
-      <svg className="w-40 h-40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" rx="10" fill="#ffffff" />
-        <rect x="10" y="10" width="25" height="25" rx="3" stroke="#4f46e5" strokeWidth="6" fill="none" />
-        <rect x="15" y="15" width="15" height="15" rx="1.5" fill="#4f46e5" />
-        
-        <rect x="65" y="10" width="25" height="25" rx="3" stroke="#4f46e5" strokeWidth="6" fill="none" />
-        <rect x="70" y="15" width="15" height="15" rx="1.5" fill="#4f46e5" />
-        
-        <rect x="10" y="65" width="25" height="25" rx="3" stroke="#4f46e5" strokeWidth="6" fill="none" />
-        <rect x="15" y="70" width="15" height="15" rx="1.5" fill="#4f46e5" />
-        
-        <rect x="45" y="15" width="6" height="6" fill="#09090b" />
-        <rect x="52" y="10" width="6" height="12" fill="#09090b" />
-        <rect x="45" y="25" width="12" height="6" fill="#4f46e5" />
-        <rect x="70" y="45" width="6" height="12" fill="#09090b" />
-        <rect x="80" y="52" width="6" height="6" fill="#09090b" />
-        <rect x="15" y="45" width="12" height="6" fill="#09090b" />
-        <rect x="25" y="52" width="6" height="10" fill="#4f46e5" />
-        
-        <rect x="42" y="42" width="16" height="16" rx="2" fill="#4f46e5" />
-        <text x="50" y="52" fontSize="8" fontWeight="bold" textAnchor="middle" fill="#ffffff" fontFamily="sans-serif">W2M</text>
-        
-        <rect x="45" y="65" width="12" height="6" fill="#09090b" />
-        <rect x="45" y="75" width="6" height="12" fill="#09090b" />
-        <rect x="54" y="80" width="10" height="6" fill="#4f46e5" />
-        <rect x="70" y="70" width="15" height="15" fill="#09090b" />
-      </svg>
-    );
   };
 
   return (
@@ -149,42 +111,7 @@ export default function Header() {
             </button>
           </div>
 
-          {/* Copy link / Native Share & QR Code */}
-          <div className="flex items-center">
-            <Button
-              onClick={handleShare}
-              variant="outline"
-              size="sm"
-              className="rounded-l-lg rounded-r-none border-r-0 font-bold cursor-pointer h-9 px-3.5"
-              title={language === 'en' ? 'Share board invitation' : 'Chia sẻ lời mời'}
-            >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-              <span>{copied ? getTranslation(language, 'copiedLink') : getTranslation(language, 'copyInvite')}</span>
-            </Button>
-            
-            <Dialog>
-              <DialogTrigger
-                className="inline-flex items-center justify-center rounded-l-none cursor-pointer h-9 w-9 border-l border-border rounded-r-lg bg-background border border-input text-foreground hover:bg-muted dark:hover:bg-zinc-800"
-                title={getTranslation(language, 'qrCode')}
-              >
-                <QrCode className="w-3.5 h-3.5" />
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-xs flex flex-col items-center justify-center p-6 bg-card border-border glow-primary rounded-2xl">
-                <DialogHeader className="w-full text-center">
-                  <DialogTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground text-center">
-                    {getTranslation(language, 'qrCode')}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="p-4 bg-white rounded-2xl shadow-sm border border-border mt-2">
-                  {getQRDataUrl()}
-                </div>
-                <span className="text-[10px] text-center text-muted-foreground font-semibold mt-3 max-w-xs leading-normal">
-                  {getTranslation(language, 'scanQr')}
-                </span>
-              </DialogContent>
-            </Dialog>
-          </div>
-
+          <HeaderShareControls copied={copied} language={language} onShare={handleShare} />
           <ThemeToggle />
 
           {/* Account logout */}
@@ -200,62 +127,17 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Editing Toolbelt (displays if logged in) */}
       {currentUser && (
-        <div className="mt-3.5 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 bg-muted/20 p-2 rounded-xl">
-          <div className="flex items-center gap-2">
-            <span className="text-xl bg-card border border-border p-1 rounded-lg shadow-sm">{currentUser.avatar}</span>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-foreground leading-none">{currentUser.name}</span>
-              <span className="text-[10px] text-muted-foreground font-semibold mt-1">
-                {currentUser.isCompleted ? getTranslation(language, 'availSubmitted') : getTranslation(language, 'editingSchedule')}
-              </span>
-            </div>
-          </div>
-
-          {/* Tool actions */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={undo}
-              disabled={undoStack.length <= 1}
-              className="h-8 w-8 cursor-pointer rounded-lg"
-              title={language === 'en' ? 'Undo edit' : 'Hoàn tác'}
-            >
-              <Undo2 className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={redo}
-              disabled={redoStack.length === 0}
-              className="h-8 w-8 cursor-pointer rounded-lg"
-              title={language === 'en' ? 'Redo edit' : 'Làm lại'}
-            >
-              <Redo2 className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearCurrentAvailability}
-              className="text-[11px] font-bold border-border/80 hover:bg-red-500/10 hover:text-red-500 cursor-pointer h-8 px-3"
-              title={language === 'en' ? 'Clear all selected slots' : 'Xóa sạch tất cả các ô đã chọn'}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{getTranslation(language, 'clear')}</span>
-            </Button>
-            <Button
-              onClick={fillCurrentAvailability}
-              size="sm"
-              className="text-[11px] font-bold cursor-pointer h-8 px-3"
-              title={language === 'en' ? 'Select all slots in grid' : 'Chọn tất cả các ô trên lịch'}
-            >
-              <CheckSquare className="w-3.5 h-3.5" />
-              <span>{getTranslation(language, 'selectAll')}</span>
-            </Button>
-          </div>
-        </div>
+        <HeaderToolbelt
+          currentUser={currentUser}
+          language={language}
+          undoStackLength={undoStack.length}
+          redoStackLength={redoStack.length}
+          onUndo={undo}
+          onRedo={redo}
+          onClear={clearCurrentAvailability}
+          onFill={fillCurrentAvailability}
+        />
       )}
     </header>
   );
