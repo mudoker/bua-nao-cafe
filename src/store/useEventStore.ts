@@ -28,9 +28,6 @@ interface EventState {
     minOverlapPercentage: number; // e.g. 0 to 100
   };
 
-  // Real-time Simulation Status
-  isSimulating: boolean;
-  simulationIntervalId: any | null;
   recentActivity: { id: string; message: string; timestamp: Date }[];
 
   // Actions
@@ -61,9 +58,6 @@ interface EventState {
   clearFilters: () => void;
   setFilter: (key: string, value: any) => void;
 
-  // Real-time simulator actions
-  toggleSimulation: (enable: boolean) => void;
-  triggerSimulatedActivity: () => void;
   addActivity: (message: string) => void;
   
   // Computations
@@ -202,8 +196,6 @@ export const useEventStore = create<EventState>((set, get) => {
       workingHoursOnly: false,
       minOverlapPercentage: 0,
     },
-    isSimulating: false,
-    simulationIntervalId: null,
     recentActivity: [],
 
     createEvent: (details) => {
@@ -252,10 +244,6 @@ export const useEventStore = create<EventState>((set, get) => {
     },
 
     resetEvent: () => {
-      const { simulationIntervalId } = get();
-      if (simulationIntervalId) {
-        clearInterval(simulationIntervalId);
-      }
       set({
         currentEvent: null,
         participants: [],
@@ -264,8 +252,6 @@ export const useEventStore = create<EventState>((set, get) => {
         selectedSlots: [],
         undoStack: [],
         redoStack: [],
-        isSimulating: false,
-        simulationIntervalId: null,
         recentActivity: [],
       });
     },
@@ -659,146 +645,7 @@ export const useEventStore = create<EventState>((set, get) => {
       });
     },
 
-    toggleSimulation: (enable) => {
-      const { simulationIntervalId } = get();
-      
-      if (!enable) {
-        if (simulationIntervalId) clearInterval(simulationIntervalId);
-        set({ isSimulating: false, simulationIntervalId: null });
-        get().addActivity('Realtime simulation stopped.');
-        return;
-      }
 
-      // Start simulation loop
-      const id = setInterval(() => {
-        get().triggerSimulatedActivity();
-      }, 12000); // Trigger activity every 12 seconds
-
-      set({
-        isSimulating: true,
-        simulationIntervalId: id,
-      });
-      get().addActivity('Realtime simulation active. Other participants are now editing live...');
-    },
-
-    triggerSimulatedActivity: () => {
-      const { currentEvent, participants, availability, currentUser } = get();
-      if (!currentEvent || participants.length === 0) return;
-
-      const slots = generateSlots(
-        currentEvent.dates,
-        currentEvent.visibleHoursStart,
-        currentEvent.visibleHoursEnd,
-        currentEvent.slotDuration
-      );
-
-      const decision = Math.random();
-      
-      if (decision < 0.25) {
-        // A participant goes online/offline or updates activity
-        const target = participants[Math.floor(Math.random() * participants.length)];
-        // Don't modify the currentUser
-        if (currentUser && target.id === currentUser.id) return;
-        
-        const isOnline = Math.random() > 0.3;
-        const updatedParticipants = participants.map(p =>
-          p.id === target.id
-            ? { ...p, isOnline, lastActive: new Date().toISOString() }
-            : p
-        );
-
-        set({ participants: updatedParticipants });
-        get().addActivity(`${target.name} is now ${isOnline ? 'online 🟢' : 'offline ⚪'}.`);
-
-      } else if (decision < 0.70) {
-        // A participant updates availability
-        const availableParticipants = participants.filter(p => p.id !== currentUser?.id);
-        if (availableParticipants.length === 0) return;
-        
-        const target = availableParticipants[Math.floor(Math.random() * availableParticipants.length)];
-        const currentSlots = availability[target.id] || [];
-        
-        // Randomly add or remove 1-4 slots
-        let updatedSlots = [...currentSlots];
-        const numChanges = Math.floor(Math.random() * 3) + 1;
-        
-        for (let i = 0; i < numChanges; i++) {
-          const randomSlot = slots[Math.floor(Math.random() * slots.length)];
-          if (updatedSlots.includes(randomSlot)) {
-            updatedSlots = updatedSlots.filter(s => s !== randomSlot);
-          } else {
-            updatedSlots.push(randomSlot);
-          }
-        }
-
-        const updatedParticipants = participants.map(p =>
-          p.id === target.id ? { ...p, isCompleted: true, lastActive: new Date().toISOString(), isOnline: true } : p
-        );
-        const updatedAvailability = { ...availability, [target.id]: updatedSlots };
-
-        set({
-          participants: updatedParticipants,
-          availability: updatedAvailability,
-        });
-
-        get().addActivity(`${target.name} modified their availability.`);
-        
-        saveToLocalStorage({
-          currentEvent,
-          participants: updatedParticipants,
-          availability: updatedAvailability,
-          currentUser,
-        });
-
-      } else {
-        // A new participant joins
-        if (participants.length >= 10) return; // Cap at 10 to prevent overcrowding
-        
-        const randomAdjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
-        const randomName = NAMES[Math.floor(Math.random() * NAMES.length)];
-        const name = `${randomAdjective} ${randomName}`;
-        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
-        const avatar = AVATARS[Math.floor(Math.random() * AVATARS.length)];
-        
-        const newId = `p-sim-${Math.random().toString(36).substring(2, 7)}`;
-        const newParticipant: Participant = {
-          id: newId,
-          name,
-          color,
-          avatar,
-          isOnline: true,
-          lastActive: new Date().toISOString(),
-          isCompleted: true,
-          isHost: false,
-        };
-
-        // Generate some random availability for them
-        const randomSlots: string[] = [];
-        slots.forEach(s => {
-          const hour = parseInt(s.split('T')[1].split(':')[0], 10);
-          if (hour >= 10 && hour < 15 && Math.random() > 0.4) {
-            randomSlots.push(s);
-          }
-        });
-
-        const updatedParticipants = [...participants, newParticipant];
-        const updatedAvailability = { ...availability, [newId]: randomSlots };
-
-        set({
-          participants: updatedParticipants,
-          availability: updatedAvailability,
-        });
-
-        get().addActivity(`${name} joined the schedule workspace.`);
-        
-        saveToLocalStorage({
-          currentEvent,
-          participants: updatedParticipants,
-          availability: updatedAvailability,
-          currentUser,
-        });
-      }
-    },
 
     addActivity: (message) => {
       set(state => ({

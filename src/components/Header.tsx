@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import ThemeToggle from './ThemeToggle';
 import { getTranslation } from '../utils/translations';
-import { Check, QrCode, Play, Square, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
+import { Check, QrCode, Undo2, Redo2, Trash2, CheckSquare, Share2, LogOut, Clock, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,8 +22,6 @@ export default function Header() {
   const redo = useEventStore((state) => state.redo);
   const clearCurrentAvailability = useEventStore((state) => state.clearCurrentAvailability);
   const fillCurrentAvailability = useEventStore((state) => state.fillCurrentAvailability);
-  const isSimulating = useEventStore((state) => state.isSimulating);
-  const toggleSimulation = useEventStore((state) => state.toggleSimulation);
   const undoStack = useEventStore((state) => state.undoStack);
   const redoStack = useEventStore((state) => state.redoStack);
   const language = useEventStore((state) => state.language);
@@ -150,23 +148,6 @@ export default function Header() {
               VI
             </button>
           </div>
-
-          {/* Realtime simulator */}
-          <Button
-            onClick={() => toggleSimulation(!isSimulating)}
-            variant={isSimulating ? "default" : "outline"}
-            size="sm"
-            className={`flex items-center gap-1.5 font-bold cursor-pointer transition-all ${
-              isSimulating ? 'bg-emerald-500 hover:bg-emerald-600 border-transparent text-white pulse-emerald' : ''
-            }`}
-            title={language === 'en' ? 'Simulate live responses' : 'Mô phỏng phản hồi thời gian thực'}
-          >
-            {isSimulating ? <Square className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-            <span className="flex items-center gap-1">
-              <span>{getTranslation(language, 'simulation')}</span>
-              <span className={`w-1.5 h-1.5 rounded-full ${isSimulating ? 'bg-emerald-200' : 'bg-muted-foreground/50'}`} />
-            </span>
-          </Button>
 
           {/* Copy link / Native Share & QR Code */}
           <div className="flex items-center">
