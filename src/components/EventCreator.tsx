@@ -36,7 +36,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [visibleHoursStart, setVisibleHoursStart] = useState(9); // 9 AM
   const [visibleHoursEnd, setVisibleHoursEnd] = useState(17); // 5 PM
-  const [slotDuration, setSlotDuration] = useState(30); // 30 mins
+  const [slotDuration, setSlotDuration] = useState('30'); // stored as string to allow empty input
   const [includeWeekends, setIncludeWeekends] = useState(true);
   const [bufferMinutes, setBufferMinutes] = useState(0);
 
@@ -127,7 +127,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
       dates: selectedDates,
       visibleHoursStart,
       visibleHoursEnd,
-      slotDuration,
+      slotDuration: Math.max(1, parseInt(slotDuration, 10) || 30),
       isPrivate,
       password: password || undefined,
       maxParticipants,
@@ -423,7 +423,16 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                   min={1}
                   max={1440}
                   value={slotDuration}
-                  onChange={(e) => setSlotDuration(Math.max(1, Number(e.target.value)))}
+                  onChange={(e) => setSlotDuration(e.target.value)}
+                  onBlur={(e) => {
+                    const parsed = parseInt(e.target.value, 10);
+                    if (!e.target.value || isNaN(parsed) || parsed < 1) {
+                      setSlotDuration('30');
+                    } else {
+                      setSlotDuration(String(Math.min(1440, parsed)));
+                    }
+                  }}
+                  placeholder="30"
                   className="font-bold text-foreground h-11 pr-16 pl-3.5"
                 />
                 <span className="absolute right-3.5 text-xs text-muted-foreground font-bold uppercase tracking-wide pointer-events-none select-none">
