@@ -328,7 +328,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         )}
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-4">
+      <CardContent className="space-y-4 pt-4 flex-1 flex flex-col min-h-0">
         {/* Date Carousel Selector for Mobile */}
         {filteredDates.length > 1 && (
           <div className="flex sm:hidden items-center justify-between gap-2 p-1.5 bg-muted/30 rounded-xl">
@@ -362,7 +362,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         )}
 
         {/* Main Grid View */}
-        <div className="overflow-auto max-h-[440px] border border-border rounded-xl relative bg-card">
+        <div className="overflow-auto flex-1 min-h-0 border border-border rounded-xl relative bg-card">
           <table
             className="w-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
