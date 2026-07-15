@@ -306,8 +306,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           <CalendarDays className="w-5 h-5 text-primary" />
           <span>{getTranslation(language, 'heatmapTitle')}</span>
         </CardTitle>
-
-        )}
       </CardHeader>
 
       <CardContent className="space-y-4 pt-4 flex-1 flex flex-col min-h-0">
