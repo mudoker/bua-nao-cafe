@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { AccountSession, Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
 import { generateSlots } from '../utils/time';
 import { Language } from '../utils/translations';
-import confetti from 'canvas-confetti';
 import { EventState } from './useEventStore.types';
 
 const getStoredAccount = (): AccountSession | null => {
@@ -407,14 +406,8 @@ export const useEventStore = create<EventState>((set, get) => {
       };
       syncState(stateToSave);
 
-      // Confetti feedback when submitting for the first time
       const wasCompleted = currentUser.isCompleted;
       if (!wasCompleted) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
         get().addActivity(`${currentUser.name} submitted availability! 🎉`);
       } else {
         get().addActivity(`${currentUser.name} updated availability.`);
@@ -631,11 +624,6 @@ export const useEventStore = create<EventState>((set, get) => {
       syncState(stateToSave);
 
       if (slotId) {
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.3 }
-        });
         get().addActivity(`Meeting time finalized! 📅`);
       } else {
         get().addActivity(`Finalized meeting time removed.`);
