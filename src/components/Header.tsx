@@ -98,7 +98,7 @@ export default function Header() {
         </div>
 
         {/* Action controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <Button
             onClick={handleBackHome}
             variant="outline"
@@ -106,7 +106,7 @@ export default function Header() {
             className="flex items-center gap-1 font-bold cursor-pointer h-9"
           >
             <Home className="w-3.5 h-3.5" />
-            <span>{language === 'en' ? 'Home' : 'Trang chủ'}</span>
+            <span className="hidden sm:inline">{language === 'en' ? 'Home' : 'Trang chủ'}</span>
           </Button>
 
           {currentUser?.isHost && (

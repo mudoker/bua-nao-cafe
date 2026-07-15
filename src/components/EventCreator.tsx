@@ -38,7 +38,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
   const [visibleHoursEnd, setVisibleHoursEnd] = useState(17); // 5 PM
   const [slotDuration, setSlotDuration] = useState('30'); // stored as string to allow empty input
   const [includeWeekends, setIncludeWeekends] = useState(true);
-  const [bufferMinutes, setBufferMinutes] = useState(0);
+  const bufferMinutes = 0;
 
   // Advanced Options
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -455,23 +455,6 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="bufferMinutes" className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
-                    {getTranslation(language, 'meetingBuffer')}
-                  </label>
-                  <Select value={String(bufferMinutes)} onValueChange={(val) => setBufferMinutes(Number(val))}>
-                    <SelectTrigger id="bufferMinutes" className="w-full !h-10 text-xs font-semibold text-foreground">
-                      <SelectValue placeholder="Buffer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">{getTranslation(language, 'noBuffer')}</SelectItem>
-                      <SelectItem value="10">{getTranslation(language, 'bufferMins', { min: 10 })}</SelectItem>
-                      <SelectItem value="15">{getTranslation(language, 'bufferMins', { min: 15 })}</SelectItem>
-                      <SelectItem value="30">{getTranslation(language, 'bufferMins', { min: 30 })}</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-2">

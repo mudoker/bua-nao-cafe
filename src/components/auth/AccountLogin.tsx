@@ -84,7 +84,7 @@ export default function AccountLogin() {
                 id="account-name"
                 label={language === 'en' ? 'Username' : 'Tên đăng nhập'}
                 value={name}
-                placeholder={language === 'en' ? 'e.g., Minh Nguyen' : 'VD: Nguyễn Minh'}
+                placeholder={language === 'en' ? 'e.g., Elsa Phun Lua' : 'VD: Elsa Phun Lua'}
                 icon={<UserRound className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />}
                 onChange={setName}
                 onClearError={() => setError('')}

@@ -18,7 +18,7 @@ export default function HeaderShareControls({ copied, language, onShare }: Heade
         title={language === 'en' ? 'Share board invitation' : 'Chia sẻ lời mời'}
       >
         {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5" />}
-        <span>{copied ? getTranslation(language, 'copiedLink') : getTranslation(language, 'copyInvite')}</span>
+        <span className="hidden sm:inline">{copied ? getTranslation(language, 'copiedLink') : getTranslation(language, 'copyInvite')}</span>
       </Button>
       <Dialog>
         <DialogTrigger

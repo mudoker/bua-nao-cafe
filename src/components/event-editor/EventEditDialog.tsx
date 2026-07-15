@@ -23,7 +23,6 @@ export default function EventEditDialog({ event, language, onSave }: EventEditDi
   const [visibleHoursEnd, setVisibleHoursEnd] = useState(event.visibleHoursEnd);
   const [slotDuration, setSlotDuration] = useState(String(event.slotDuration));
   const [includeWeekends, setIncludeWeekends] = useState(event.includeWeekends);
-  const [bufferMinutes, setBufferMinutes] = useState(event.bufferMinutes);
   const [isPrivate, setIsPrivate] = useState(event.isPrivate);
   const [password, setPassword] = useState(event.password || '');
   const [deadline, setDeadline] = useState(event.deadline || '');
@@ -72,7 +71,7 @@ export default function EventEditDialog({ event, language, onSave }: EventEditDi
       visibleHoursEnd,
       slotDuration: Math.max(1, Math.min(1440, parseInt(slotDuration, 10) || event.slotDuration)),
       includeWeekends,
-      bufferMinutes,
+      bufferMinutes: event.bufferMinutes,
       isPrivate,
       password: isPrivate ? password || undefined : undefined,
       deadline: deadline || undefined,
@@ -91,7 +90,7 @@ export default function EventEditDialog({ event, language, onSave }: EventEditDi
         title={language === 'en' ? 'Edit event details' : 'Chỉnh sửa lịch'}
       >
         <Pencil className="w-3.5 h-3.5" />
-        <span>{language === 'en' ? 'Edit' : 'Sửa'}</span>
+        <span className="hidden sm:inline">{language === 'en' ? 'Edit' : 'Sửa'}</span>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-card border-border">
         <DialogHeader>
@@ -148,15 +147,6 @@ export default function EventEditDialog({ event, language, onSave }: EventEditDi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border pt-4">
             <HourSelect id="edit-preferred-start" label={language === 'en' ? 'Preferred start' : 'Bắt đầu mong muốn'} value={preferredStart} onChange={setPreferredStart} getHourLabel={getHourLabel} />
             <HourSelect id="edit-preferred-end" label={language === 'en' ? 'Preferred end' : 'Kết thúc mong muốn'} value={preferredEnd} onChange={setPreferredEnd} getHourLabel={getHourLabel} />
-            <Select value={String(bufferMinutes)} onValueChange={(value) => setBufferMinutes(Number(value))}>
-              <SelectTrigger className="h-10 font-semibold"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">{getTranslation(language, 'noBuffer')}</SelectItem>
-                <SelectItem value="10">{getTranslation(language, 'bufferMins', { min: 10 })}</SelectItem>
-                <SelectItem value="15">{getTranslation(language, 'bufferMins', { min: 15 })}</SelectItem>
-                <SelectItem value="30">{getTranslation(language, 'bufferMins', { min: 30 })}</SelectItem>
-              </SelectContent>
-            </Select>
             <LabeledInput id="edit-deadline" label={getTranslation(language, 'responseDeadline')} value={deadline} onChange={setDeadline} type="datetime-local" />
             <LabeledInput id="edit-max" label={getTranslation(language, 'maxParticipants')} value={maxParticipants ? String(maxParticipants) : ''} onChange={(value) => setMaxParticipants(value ? parseInt(value, 10) : undefined)} type="number" />
           </div>
