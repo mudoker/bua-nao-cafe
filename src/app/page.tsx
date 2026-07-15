@@ -12,7 +12,7 @@ import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
 import ThemeToggle from '../components/ThemeToggle';
-import { ArrowRight, Calendar, CalendarCheck, Clock3, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee, LockKeyhole, LogOut, UserRound } from 'lucide-react';
+import { ArrowRight, Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee, LockKeyhole, LogOut, UserRound } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,113 +40,14 @@ function AccountLogin() {
     setIsSubmitting(false);
   };
 
-  const previewDays = language === 'en' ? ['Mon', 'Tue', 'Wed'] : ['T2', 'T3', 'T4'];
-  const previewRows = [
-    ['bg-emerald-400', 'bg-lime-400', 'bg-muted'],
-    ['bg-sky-500', 'bg-emerald-400', 'bg-teal-500'],
-    ['bg-muted', 'bg-sky-500', 'bg-lime-400'],
-    ['bg-amber-400', 'bg-muted', 'bg-emerald-400'],
-  ];
-
   return (
     <div className="min-h-screen bg-background text-foreground relative overflow-hidden transition-colors duration-200">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.045)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
 
-      <div className="relative z-10 min-h-screen grid lg:grid-cols-[1.08fr_0.92fr]">
-        <section className="hidden lg:flex flex-col justify-between border-r border-border bg-card/70 px-10 py-9">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-400 text-zinc-950 shadow-sm">
-                <Coffee className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-sm font-black leading-none text-foreground">Bữa Nào Cafe?</p>
-                <p className="text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
-                  {language === 'en' ? 'Group scheduling' : 'Lên lịch nhóm'}
-                </p>
-              </div>
-            </div>
-            <ThemeToggle />
-          </div>
-
-          <div className="max-w-xl space-y-8">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-bold text-muted-foreground shadow-sm">
-                <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
-                <span>{language === 'en' ? 'Account-based boards' : 'Bảng lịch theo tài khoản'}</span>
-              </div>
-              <h1 className="m-0 max-w-lg text-5xl font-black leading-[1.02] tracking-normal text-foreground">
-                {language === 'en' ? 'Find the cafe time everyone can actually make.' : 'Tìm giờ cafe cả nhóm thật sự đi được.'}
-              </h1>
-              <p className="max-w-md text-sm font-semibold leading-6 text-muted-foreground">
-                {language === 'en'
-                  ? 'Log in once, recover your boards, and keep invite links tied to the right person.'
-                  : 'Đăng nhập một lần, xem lại lịch của bạn, và giữ link mời đúng theo từng người.'}
-              </p>
-            </div>
-
-            <div className="max-w-md rounded-xl border border-border bg-background p-4 shadow-sm">
-              <div className="grid grid-cols-[3.5rem_repeat(3,1fr)] gap-2 text-center">
-                <div />
-                {previewDays.map((day) => (
-                  <div key={day} className="text-[10px] font-black uppercase text-muted-foreground">
-                    {day}
-                  </div>
-                ))}
-                {previewRows.map((row, rowIndex) => (
-                  <React.Fragment key={rowIndex}>
-                    <div className="flex items-center justify-end pr-1 text-[10px] font-bold text-muted-foreground">
-                      {`${9 + rowIndex}:00`}
-                    </div>
-                    {row.map((cell, cellIndex) => (
-                      <div
-                        key={`${rowIndex}-${cellIndex}`}
-                        className={`h-12 rounded-md border border-border/70 ${cell} ${cell === 'bg-muted' ? 'opacity-70' : 'shadow-sm'}`}
-                      />
-                    ))}
-                  </React.Fragment>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
-                <div className="flex -space-x-2">
-                  {['AN', 'BT', 'KL'].map((initials, index) => (
-                    <span
-                      key={initials}
-                      className={`flex size-8 items-center justify-center rounded-full border-2 border-background text-[10px] font-black text-white ${
-                        index === 0 ? 'bg-sky-600' : index === 1 ? 'bg-emerald-600' : 'bg-rose-600'
-                      }`}
-                    >
-                      {initials}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                  <Clock3 className="w-3.5 h-3.5" />
-                  <span>{language === 'en' ? 'Best overlap found' : 'Đã tìm thấy giờ trùng'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3 text-[11px] font-bold text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-sky-500" />
-              <span>{language === 'en' ? 'Right identity' : 'Đúng danh tính'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-amber-500" />
-              <span>{language === 'en' ? 'Fast invites' : 'Mời nhanh'}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-500" />
-              <span>{language === 'en' ? 'Team heatmaps' : 'Biểu đồ nhóm'}</span>
-            </div>
-          </div>
-        </section>
-
+      <div className="relative z-10 min-h-screen">
         <main className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-8">
           <div className="w-full max-w-md">
-            <div className="mb-8 flex items-center justify-between lg:hidden">
+            <div className="mb-8 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-amber-400 text-zinc-950">
                   <Coffee className="w-5 h-5" />
