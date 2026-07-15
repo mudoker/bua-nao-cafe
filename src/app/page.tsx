@@ -12,7 +12,7 @@ import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
 import ThemeToggle from '../components/ThemeToggle';
-import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee, LogIn, LogOut } from 'lucide-react';
+import { ArrowRight, Calendar, CalendarCheck, Clock3, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee, LockKeyhole, LogOut, UserRound } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,66 +40,206 @@ function AccountLogin() {
     setIsSubmitting(false);
   };
 
-  return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
-      <div className="absolute top-4 right-4 z-50">
-        <ThemeToggle />
-      </div>
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(120,119,198,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(120,119,198,0.04)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+  const previewDays = language === 'en' ? ['Mon', 'Tue', 'Wed'] : ['T2', 'T3', 'T4'];
+  const previewRows = [
+    ['bg-emerald-400', 'bg-lime-400', 'bg-muted'],
+    ['bg-sky-500', 'bg-emerald-400', 'bg-teal-500'],
+    ['bg-muted', 'bg-sky-500', 'bg-lime-400'],
+    ['bg-amber-400', 'bg-muted', 'bg-emerald-400'],
+  ];
 
-      <Card className="w-full max-w-sm z-10 shadow-xl border-border glow-primary">
-        <CardHeader className="items-center text-center">
-          <div className="p-3 bg-primary/10 rounded-full border border-primary/20 mb-2">
-            <Coffee className="w-8 h-8 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-extrabold tracking-tight">
-            {language === 'en' ? 'Log in to Bữa Nào Cafe?' : 'Đăng nhập Bữa Nào Cafe?'}
-          </CardTitle>
-          <div className="flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border text-[10px] font-bold mt-2">
-            <button type="button" onClick={() => setLanguage('en')} className={`px-2 py-0.5 rounded cursor-pointer ${language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-              EN
-            </button>
-            <button type="button" onClick={() => setLanguage('vi')} className={`px-2 py-0.5 rounded cursor-pointer ${language === 'vi' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
-              VI
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="account-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {language === 'en' ? 'Username' : 'Tên đăng nhập'}
-              </label>
-              <Input
-                id="account-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={language === 'en' ? 'Your name' : 'Tên của bạn'}
-                className="h-11 font-semibold"
-                autoFocus
-              />
+  return (
+    <div className="min-h-screen bg-background text-foreground relative overflow-hidden transition-colors duration-200">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(15,23,42,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,0.045)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
+
+      <div className="relative z-10 min-h-screen grid lg:grid-cols-[1.08fr_0.92fr]">
+        <section className="hidden lg:flex flex-col justify-between border-r border-border bg-card/70 px-10 py-9">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-amber-400 text-zinc-950 shadow-sm">
+                <Coffee className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-black leading-none text-foreground">Bữa Nào Cafe?</p>
+                <p className="text-[11px] font-bold text-muted-foreground mt-1 uppercase tracking-wider">
+                  {language === 'en' ? 'Group scheduling' : 'Lên lịch nhóm'}
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <label htmlFor="account-password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                {language === 'en' ? 'Password (optional)' : 'Mật khẩu (tùy chọn)'}
-              </label>
-              <Input
-                id="account-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={language === 'en' ? 'Leave blank for a simple account' : 'Có thể bỏ trống'}
-                className="h-11 font-semibold"
-              />
+            <ThemeToggle />
+          </div>
+
+          <div className="max-w-xl space-y-8">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-bold text-muted-foreground shadow-sm">
+                <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>{language === 'en' ? 'Account-based boards' : 'Bảng lịch theo tài khoản'}</span>
+              </div>
+              <h1 className="m-0 max-w-lg text-5xl font-black leading-[1.02] tracking-normal text-foreground">
+                {language === 'en' ? 'Find the cafe time everyone can actually make.' : 'Tìm giờ cafe cả nhóm thật sự đi được.'}
+              </h1>
+              <p className="max-w-md text-sm font-semibold leading-6 text-muted-foreground">
+                {language === 'en'
+                  ? 'Log in once, recover your boards, and keep invite links tied to the right person.'
+                  : 'Đăng nhập một lần, xem lại lịch của bạn, và giữ link mời đúng theo từng người.'}
+              </p>
             </div>
-            {error && <p className="text-xs font-bold text-destructive">{error}</p>}
-            <Button type="submit" className="w-full h-11 font-bold cursor-pointer" disabled={isSubmitting}>
-              <LogIn className="w-4 h-4" />
-              <span>{isSubmitting ? (language === 'en' ? 'Entering...' : 'Đang vào...') : (language === 'en' ? 'Enter app' : 'Vào ứng dụng')}</span>
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+
+            <div className="max-w-md rounded-xl border border-border bg-background p-4 shadow-sm">
+              <div className="grid grid-cols-[3.5rem_repeat(3,1fr)] gap-2 text-center">
+                <div />
+                {previewDays.map((day) => (
+                  <div key={day} className="text-[10px] font-black uppercase text-muted-foreground">
+                    {day}
+                  </div>
+                ))}
+                {previewRows.map((row, rowIndex) => (
+                  <React.Fragment key={rowIndex}>
+                    <div className="flex items-center justify-end pr-1 text-[10px] font-bold text-muted-foreground">
+                      {`${9 + rowIndex}:00`}
+                    </div>
+                    {row.map((cell, cellIndex) => (
+                      <div
+                        key={`${rowIndex}-${cellIndex}`}
+                        className={`h-12 rounded-md border border-border/70 ${cell} ${cell === 'bg-muted' ? 'opacity-70' : 'shadow-sm'}`}
+                      />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-3">
+                <div className="flex -space-x-2">
+                  {['AN', 'BT', 'KL'].map((initials, index) => (
+                    <span
+                      key={initials}
+                      className={`flex size-8 items-center justify-center rounded-full border-2 border-background text-[10px] font-black text-white ${
+                        index === 0 ? 'bg-sky-600' : index === 1 ? 'bg-emerald-600' : 'bg-rose-600'
+                      }`}
+                    >
+                      {initials}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                  <Clock3 className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Best overlap found' : 'Đã tìm thấy giờ trùng'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 text-[11px] font-bold text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-sky-500" />
+              <span>{language === 'en' ? 'Right identity' : 'Đúng danh tính'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span>{language === 'en' ? 'Fast invites' : 'Mời nhanh'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-500" />
+              <span>{language === 'en' ? 'Team heatmaps' : 'Biểu đồ nhóm'}</span>
+            </div>
+          </div>
+        </section>
+
+        <main className="flex min-h-screen items-center justify-center px-4 py-8 sm:px-8">
+          <div className="w-full max-w-md">
+            <div className="mb-8 flex items-center justify-between lg:hidden">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-xl bg-amber-400 text-zinc-950">
+                  <Coffee className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-black leading-none">Bữa Nào Cafe?</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-1">
+                    {language === 'en' ? 'Group scheduling' : 'Lên lịch nhóm'}
+                  </p>
+                </div>
+              </div>
+              <ThemeToggle />
+            </div>
+
+            <div className="rounded-xl border border-border bg-card p-5 shadow-xl sm:p-6">
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <p className="mb-2 inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    <Sparkles className="w-3 h-3" />
+                    <span>{language === 'en' ? 'Welcome back' : 'Chào mừng trở lại'}</span>
+                  </p>
+                  <h2 className="m-0 text-2xl font-black tracking-normal text-foreground">
+                    {language === 'en' ? 'Enter your board' : 'Vào bảng lịch của bạn'}
+                  </h2>
+                  <p className="mt-2 text-xs font-semibold leading-5 text-muted-foreground">
+                    {language === 'en'
+                      ? 'Use the same name to see previous and pending events.'
+                      : 'Dùng cùng một tên để xem lịch cũ và lịch đang chờ.'}
+                  </p>
+                </div>
+                <div className="flex items-center rounded-lg border border-border bg-muted/60 p-0.5 text-[10px] font-black">
+                  <button type="button" onClick={() => setLanguage('en')} className={`px-2.5 py-1 rounded-md cursor-pointer ${language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    EN
+                  </button>
+                  <button type="button" onClick={() => setLanguage('vi')} className={`px-2.5 py-1 rounded-md cursor-pointer ${language === 'vi' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                    VI
+                  </button>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="account-name" className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    {language === 'en' ? 'Username' : 'Tên đăng nhập'}
+                  </label>
+                  <div className="relative">
+                    <UserRound className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="account-name"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder={language === 'en' ? 'e.g., Minh Nguyen' : 'VD: Nguyễn Minh'}
+                      className="h-12 pl-9 pr-3 font-bold"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="account-password" className="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+                    {language === 'en' ? 'Password optional' : 'Mật khẩu tùy chọn'}
+                  </label>
+                  <div className="relative">
+                    <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="account-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      placeholder={language === 'en' ? 'Protect host access' : 'Bảo vệ quyền chủ lịch'}
+                      className="h-12 pl-9 pr-3 font-bold"
+                    />
+                  </div>
+                </div>
+                {error && (
+                  <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs font-bold text-destructive">
+                    {error}
+                  </div>
+                )}
+                <Button type="submit" className="w-full h-12 justify-between px-4 font-black cursor-pointer" disabled={isSubmitting}>
+                  <span>{isSubmitting ? (language === 'en' ? 'Entering...' : 'Đang vào...') : (language === 'en' ? 'Continue' : 'Tiếp tục')}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </form>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
