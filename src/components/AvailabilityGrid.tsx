@@ -332,7 +332,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           <table
             className="w-full min-h-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
-            onMouseLeave={() => setHoveredSlot(null)}
           >
             {/* Header Row (Dates) */}
             <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
