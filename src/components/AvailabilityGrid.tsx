@@ -402,25 +402,27 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
                       return (
                         <Tooltip key={slotId}>
-                          <TooltipTrigger asChild>
-                            <td
-                              data-slot-id={slotId}
-                              className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
-                                idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                              } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
-                              onMouseDown={(e) => handleMouseDown(slotId, e)}
-                              onMouseEnter={() => handleMouseEnterCell(slotId)}
-                              onTouchStart={(e) => handleTouchStart(slotId, e)}
-                              onTouchMove={handleTouchMove}
-                              onDoubleClick={() => handleCellDoubleClick(slotId)}
-                            >
-                              {isFinalized && (
-                                <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
-                                  👑
-                                </div>
-                              )}
-                            </td>
-                          </TooltipTrigger>
+                          <TooltipTrigger
+                            render={
+                              <td
+                                data-slot-id={slotId}
+                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
+                                  idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
+                                } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
+                                onMouseDown={(e) => handleMouseDown(slotId, e)}
+                                onMouseEnter={() => handleMouseEnterCell(slotId)}
+                                onTouchStart={(e) => handleTouchStart(slotId, e)}
+                                onTouchMove={handleTouchMove}
+                                onDoubleClick={() => handleCellDoubleClick(slotId)}
+                              >
+                                {isFinalized && (
+                                  <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
+                                    👑
+                                  </div>
+                                )}
+                              </td>
+                            }
+                          />
                           <TooltipContent
                             side="right"
                             sideOffset={8}
