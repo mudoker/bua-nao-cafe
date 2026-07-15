@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
 import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate } from '../utils/time';
 import { HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export default function AvailabilityGrid({ className }: { className?: string }) {
@@ -29,11 +29,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const [paintedSlots, setPaintedSlots] = useState<string[]>([]);
   const [touchMode, setTouchMode] = useState<'paint' | 'scroll'>('scroll');
   const [activeMobileDateIndex, setActiveMobileDateIndex] = useState(0);
-
-  // Hover slot detail tooltip
-  const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-  const gridContainerRef = useRef<HTMLDivElement>(null);
 
   if (!currentEvent) return null;
 
@@ -249,16 +244,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     return 'bg-emerald-400 text-emerald-950 ring-1 ring-inset ring-emerald-300/60 shadow-[0_0_14px_rgba(52,211,153,0.5)] font-black';
   };
 
-  const handleMouseMove = (slotId: string, e: React.MouseEvent) => {
-    setHoveredSlot(slotId);
-    if (gridContainerRef.current) {
-      const containerRect = gridContainerRef.current.getBoundingClientRect();
-      setTooltipPos({
-        x: e.clientX - containerRect.left + 15,
-        y: e.clientY - containerRect.top + 15,
-      });
-    }
-  };
 
   const handleCellDoubleClick = (slotId: string) => {
     if (currentUser?.isHost) {
@@ -299,7 +284,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   }
 
   return (
-    <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)} ref={gridContainerRef}>
+    <TooltipProvider delay={200}>
+    <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)}>
       {/* Grid Controls */}
       <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b border-border">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
@@ -411,30 +397,95 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const slotId = `${dateStr}T${timeStr}`;
                       const isFinalized = currentEvent.finalizedSlot === slotId;
                       const cellBg = getCellBgClass(slotId);
-                      const { percentage } = getCellDetails(slotId);
+                      const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(slotId);
                       const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
                       const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
                       return (
-                        <td
-                          key={slotId}
-                          data-slot-id={slotId}
-                          className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
-                            idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                          } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
-                          onMouseDown={(e) => handleMouseDown(slotId, e)}
-                          onMouseEnter={() => handleMouseEnterCell(slotId)}
-                          onMouseMove={(e) => handleMouseMove(slotId, e)}
-                          onTouchStart={(e) => handleTouchStart(slotId, e)}
-                          onTouchMove={handleTouchMove}
-                          onDoubleClick={() => handleCellDoubleClick(slotId)}
-                        >
-                          {isFinalized && (
-                            <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
-                              👑
+                        <Tooltip key={slotId}>
+                          <TooltipTrigger asChild>
+                            <td
+                              data-slot-id={slotId}
+                              className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
+                                idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
+                              } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
+                              onMouseDown={(e) => handleMouseDown(slotId, e)}
+                              onMouseEnter={() => handleMouseEnterCell(slotId)}
+                              onTouchStart={(e) => handleTouchStart(slotId, e)}
+                              onTouchMove={handleTouchMove}
+                              onDoubleClick={() => handleCellDoubleClick(slotId)}
+                            >
+                              {isFinalized && (
+                                <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
+                                  👑
+                                </div>
+                              )}
+                            </td>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="right"
+                            sideOffset={8}
+                            className="p-0 border-0 bg-transparent shadow-none max-w-[220px] pointer-events-none"
+                          >
+                            <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
+                              <div className="font-bold border-b border-border/80 pb-1.5 mb-2 text-foreground flex items-center gap-1">
+                                <span>{formatSlotDate(slotId)}</span>
+                                <span className="text-muted-foreground">@</span>
+                                <span>{formatSlotTime(slotId)}</span>
+                              </div>
+
+                              {isFinalized && (
+                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
+                                  <Award className="w-3.5 h-3.5" />
+                                  <span>{getTranslation(language, 'finalized')}</span>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-1.5 mb-2 font-bold">
+                                <span className="text-primary">
+                                  {overlapCount} / {totalCount} {getTranslation(language, 'available')}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
+                              </div>
+
+                              {currentUser && (
+                                <div className="mb-2 text-[10px] font-bold">
+                                  <span>{getTranslation(language, 'yourAvailability')}: </span>
+                                  <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
+                                    {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                                  </span>
+                                </div>
+                              )}
+
+                              {availableUsers.length > 0 && (
+                                <div className="space-y-1">
+                                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {availableUsers.map((u) => (
+                                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
+                                        <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
+                                        <span>{u.name}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {unavailableUsers.length > 0 && (
+                                <div className="space-y-1 mt-2">
+                                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {unavailableUsers.map((u) => (
+                                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
+                                        <span>{u.name}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </td>
+                          </TooltipContent>
+                        </Tooltip>
                       );
                     })}
                   </tr>
@@ -473,85 +524,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           </div>
         </div>
       </CardContent>
-
-      {/* Floating Tooltip Card */}
-      {hoveredSlot && (
-        (() => {
-          const { overlapCount, totalCount, percentage, availableUsers, unavailableUsers } = getCellDetails(hoveredSlot);
-          const isMeAvailable = currentUser && availability[currentUser.id]?.includes(hoveredSlot);
-          const isFinalized = currentEvent.finalizedSlot === hoveredSlot;
-
-          return (
-            <div
-              className="absolute bg-card/95 border border-border p-3 rounded-xl shadow-xl max-w-[200px] z-40 text-xs pointer-events-none transition-opacity duration-150 backdrop-blur-sm border-border"
-              style={{
-                left: tooltipPos.x,
-                top: tooltipPos.y,
-              }}
-            >
-              <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
-                <span>{formatSlotDate(hoveredSlot)}</span>
-                <span>@</span>
-                <span>{formatSlotTime(hoveredSlot)}</span>
-              </div>
-
-              {isFinalized && (
-                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
-                  <Award className="w-3.5 h-3.5 fill-current" />
-                  <span>{getTranslation(language, 'finalized')}</span>
-                </div>
-              )}
-
-              {/* Overlap Summary */}
-              <div className="flex items-center gap-1.5 mb-2 font-bold">
-                <span className="text-primary">
-                  {overlapCount} / {totalCount} {getTranslation(language, 'available')}
-                </span>
-                <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
-              </div>
-
-              {/* Your state indicator */}
-              {currentUser && (
-                <div className="mb-2 text-[10px] font-bold">
-                  <span>{getTranslation(language, 'yourAvailability')}: </span>
-                  <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
-                    {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
-                  </span>
-                </div>
-              )}
-
-              {/* Available list */}
-              {availableUsers.length > 0 && (
-                <div className="space-y-1">
-                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
-                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                    {availableUsers.map((u) => (
-                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
-                        <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
-                        <span>{u.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Unavailable list */}
-              {unavailableUsers.length > 0 && (
-                <div className="space-y-1 mt-2">
-                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
-                  <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                    {unavailableUsers.map((u) => (
-                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
-                        <span>{u.name}</span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()
-      )}
     </Card>
+    </TooltipProvider>
   );
 }
+
