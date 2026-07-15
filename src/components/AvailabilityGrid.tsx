@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
 import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate } from '../utils/time';
-import { Brush, Eraser, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
+import { HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -27,7 +27,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [paintMode, setPaintMode] = useState<'add' | 'remove' | null>(null);
   const [paintedSlots, setPaintedSlots] = useState<string[]>([]);
-  const [activeTool, setActiveTool] = useState<'brush' | 'eraser'>('brush');
   const [touchMode, setTouchMode] = useState<'paint' | 'scroll'>('scroll');
   const [activeMobileDateIndex, setActiveMobileDateIndex] = useState(0);
 
@@ -103,13 +102,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
     setIsMouseDown(true);
     const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
-    
-    let mode: 'add' | 'remove' = 'add';
-    if (activeTool === 'eraser') {
-      mode = 'remove';
-    } else {
-      mode = isAvailable ? 'remove' : 'add';
-    }
+    const mode: 'add' | 'remove' = isAvailable ? 'remove' : 'add';
 
     setPaintMode(mode);
     setPaintedSlots([slotId]);
@@ -314,52 +307,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           <span>{getTranslation(language, 'heatmapTitle')}</span>
         </CardTitle>
 
-        {/* Tools panel */}
-        {currentUser && (
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
-              <Button
-                variant={activeTool === 'brush' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveTool('brush')}
-                className="flex items-center gap-1 text-[11px] font-bold h-7 cursor-pointer"
-              >
-                <Brush className="w-3 h-3 shrink-0" />
-                <span>{getTranslation(language, 'paintMode')}</span>
-              </Button>
-              <Button
-                variant={activeTool === 'eraser' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setActiveTool('eraser')}
-                className="flex items-center gap-1 text-[11px] font-bold h-7 cursor-pointer"
-              >
-                <Eraser className="w-3 h-3 shrink-0" />
-                <span>{getTranslation(language, 'eraseMode')}</span>
-              </Button>
-            </div>
-
-            {/* Mobile Touch Mode toggle */}
-            <div className="sm:hidden flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
-              <button
-                type="button"
-                onClick={() => setTouchMode('paint')}
-                className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                  touchMode === 'paint' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                {getTranslation(language, 'paintMobile')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setTouchMode('scroll')}
-                className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                  touchMode === 'scroll' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-                }`}
-              >
-                {getTranslation(language, 'scrollMobile')}
-              </button>
-            </div>
-          </div>
         )}
       </CardHeader>
 
