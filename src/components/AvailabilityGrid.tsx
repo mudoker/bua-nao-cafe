@@ -138,14 +138,17 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   // Touch handlers
   const handleTouchStart = (slotId: string, e: React.TouchEvent) => {
     if (!currentUser || touchMode === 'scroll') return;
-    
+
     e.preventDefault();
     setIsMouseDown(true);
-    const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
-    const mode = isAvailable ? 'remove' : 'add';
-    setPaintMode(mode);
+    // Paint mode = add only. Never remove on touch paint — tap the cell again to deselect
+    // is intentionally disabled so dragging doesn't accidentally erase selections.
+    setPaintMode('add');
     setPaintedSlots([slotId]);
-    toggleSlotAvailability(slotId);
+    const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
+    if (!isAvailable) {
+      toggleSlotAvailability(slotId);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -162,10 +165,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       setPaintedSlots([...paintedSlots, slotId]);
       const currentSlots = availability[currentUser.id] || [];
       const hasSlot = currentSlots.includes(slotId);
-      
-      if (paintMode === 'add' && !hasSlot) {
-        toggleSlotAvailability(slotId);
-      } else if (paintMode === 'remove' && hasSlot) {
+      // Paint mode only adds, never removes during a drag
+      if (!hasSlot) {
         toggleSlotAvailability(slotId);
       }
     }
@@ -380,12 +381,12 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
             </thead>
 
             {/* Time Rows */}
-            <tbody>
+            <tbody className="h-full">
               {uniqueTimes.map((timeStr) => {
                 const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
 
                 return (
-                  <tr key={timeStr} className="border-b border-border/50 last:border-0 h-10">
+                  <tr key={timeStr} className="border-b border-border/50 last:border-0">
                     {/* Left Column (Sticky Time) */}
                     <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
                       {formattedTime}
