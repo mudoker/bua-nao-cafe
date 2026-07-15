@@ -225,25 +225,10 @@ export const useEventStore = create<EventState>((set, get) => {
         recentActivity: [{ id: 'system', message: `Event "${newEvent.title}" created.`, timestamp: new Date() }]
       });
 
-      // Automatically generate mock participants to simulate live database
-      const initialParticipants = [...MOCK_PARTICIPANTS];
-      const slots = generateSlots(
-        newEvent.dates,
-        newEvent.visibleHoursStart,
-        newEvent.visibleHoursEnd,
-        newEvent.slotDuration
-      );
-      const initialAvailability = generateMockAvailability(initialParticipants, slots);
-
-      set({
-        participants: initialParticipants,
-        availability: initialAvailability,
-      });
-
       saveToLocalStorage({
         currentEvent: newEvent,
-        participants: initialParticipants,
-        availability: initialAvailability,
+        participants: [],
+        availability: {},
         currentUser: null,
       });
 

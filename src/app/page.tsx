@@ -133,17 +133,17 @@ function HomeContent() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:px-6">
         {/* Desktop Layout (Two Column) */}
-        <div className="hidden lg:flex gap-6 items-start">
+        <div className="hidden lg:grid lg:grid-cols-[20rem_1fr] gap-6 items-stretch">
           {/* Left Column: Sidebar details & recommendations */}
-          <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
-            <Sidebar />
-            <Suggestions />
+          <div className="flex flex-col gap-6 h-full justify-between">
+            <Sidebar className="flex-1" />
+            <Suggestions className="shrink-0" />
           </div>
 
           {/* Right Column: Heatmap grid & statistical charts */}
-          <div className="flex-1 flex flex-col gap-6 min-w-0">
-            <AvailabilityGrid />
-            <Analytics />
+          <div className="flex flex-col gap-6 h-full justify-between">
+            <AvailabilityGrid className="flex-1" />
+            <Analytics className="shrink-0" />
           </div>
         </div>
 

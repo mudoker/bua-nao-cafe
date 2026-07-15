@@ -6,7 +6,9 @@ import { generateSlots, formatSlotTime } from '../utils/time';
 import { BarChart3, TrendingUp, Info, Calendar, Percent, Users, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-export default function Analytics() {
+import { cn } from '@/lib/utils';
+
+export default function Analytics({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const availability = useEventStore((state) => state.availability);
@@ -22,7 +24,7 @@ export default function Analytics() {
 
   if (totalCompleted === 0) {
     return (
-      <Card className="border-border bg-card shadow-sm text-center py-12">
+      <Card className={cn("border-border bg-card shadow-sm text-center py-12", className)}>
         <CardContent className="flex flex-col items-center">
           <BarChart3 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-foreground mb-1">{getTranslation(language, 'analyticsTitle')}</h3>
@@ -170,7 +172,7 @@ export default function Analytics() {
   };
 
   return (
-    <Card className="border-border bg-card shadow-sm">
+    <Card className={cn("border-border bg-card shadow-sm", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
           <BarChart3 className="w-5 h-5 text-primary" />

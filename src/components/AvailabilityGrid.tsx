@@ -8,7 +8,9 @@ import { Brush, Eraser, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Awa
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-export default function AvailabilityGrid() {
+import { cn } from '@/lib/utils';
+
+export default function AvailabilityGrid({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const availability = useEventStore((state) => state.availability);
@@ -257,7 +259,7 @@ export default function AvailabilityGrid() {
   };
 
   return (
-    <Card className="flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden" ref={gridContainerRef}>
+    <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)} ref={gridContainerRef}>
       {/* Grid Controls */}
       <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b border-border">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">

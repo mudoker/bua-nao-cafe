@@ -10,7 +10,9 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export default function Sidebar() {
+import { cn } from '@/lib/utils';
+
+export default function Sidebar({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const currentUser = useEventStore((state) => state.currentUser);
@@ -64,7 +66,7 @@ export default function Sidebar() {
     filters.minOverlapPercentage > 0;
 
   return (
-    <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-5">
+    <aside className={cn("w-full flex flex-col gap-5", className)}>
       {/* Participant List Card */}
       <Card className="border-border bg-card shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">

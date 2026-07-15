@@ -8,7 +8,9 @@ import { Sparkles, Calendar, Check, Award, ArrowUpRight, ChevronRight, ChevronDo
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-export default function Suggestions() {
+import { cn } from '@/lib/utils';
+
+export default function Suggestions({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const currentUser = useEventStore((state) => state.currentUser);
@@ -37,7 +39,7 @@ export default function Suggestions() {
   };
 
   return (
-    <Card className="border-border bg-card shadow-sm">
+    <Card className={cn("border-border bg-card shadow-sm", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b border-border mb-4">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
           <Sparkles className="w-4 h-4 text-primary" />
