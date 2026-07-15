@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
 import { MOCK_PARTICIPANTS, generateMockAvailability, ADJECTIVES, NAMES, COLORS, AVATARS } from '../services/mockData';
 import { generateSlots } from '../utils/time';
+import { Language } from '../utils/translations';
 import confetti from 'canvas-confetti';
 
 interface EventState {
@@ -14,6 +15,10 @@ interface EventState {
   // History for undo/redo
   undoStack: string[][];
   redoStack: string[][];
+
+  // Language switcher
+  language: Language;
+  setLanguage: (lang: Language) => void;
 
   // Filters
   filters: {
@@ -181,6 +186,16 @@ export const useEventStore = create<EventState>((set, get) => {
     selectedSlots: [],
     undoStack: [],
     redoStack: [],
+    
+    // Default language logic with SSR fallback
+    language: typeof window !== 'undefined' ? (localStorage.getItem('w2m_lang') as Language || 'en') : 'en',
+    setLanguage: (lang) => {
+      set({ language: lang });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('w2m_lang', lang);
+      }
+    },
+
     filters: {
       selectedParticipantIds: [],
       hideWeekend: false,

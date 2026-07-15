@@ -1,9 +1,10 @@
 "use client";
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useEventStore } from '../store/useEventStore';
+import { getTranslation } from '../utils/translations';
 import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate } from '../utils/time';
 import { Brush, Eraser, CheckCircle2, AlertCircle, HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
-import { Participant } from '../types';
 
 export default function AvailabilityGrid() {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -11,6 +12,7 @@ export default function AvailabilityGrid() {
   const availability = useEventStore((state) => state.availability);
   const currentUser = useEventStore((state) => state.currentUser);
   const filters = useEventStore((state) => state.filters);
+  const language = useEventStore((state) => state.language);
 
   // Actions
   const paintSlotsAvailability = useEventStore((state) => state.paintSlotsAvailability);
@@ -70,7 +72,6 @@ export default function AvailabilityGrid() {
     setIsMouseDown(true);
     const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
     
-    // Choose tool mode based on click or active tool
     let mode: 'add' | 'remove' = 'add';
     if (activeTool === 'eraser') {
       mode = 'remove';
@@ -81,7 +82,6 @@ export default function AvailabilityGrid() {
     setPaintMode(mode);
     setPaintedSlots([slotId]);
 
-    // Optimistic toggle
     toggleSlotAvailability(slotId);
   };
 
@@ -119,7 +119,6 @@ export default function AvailabilityGrid() {
   const handleTouchStart = (slotId: string, e: React.TouchEvent) => {
     if (!currentUser || touchMode === 'scroll') return;
     
-    // Prevent scrolling
     e.preventDefault();
     setIsMouseDown(true);
     const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
@@ -166,7 +165,6 @@ export default function AvailabilityGrid() {
 
   // Calculations for cells
   const getCellDetails = (slotId: string) => {
-    // Filter participants based on active filters
     const activeParticipants = participants.filter((p) => {
       if (filters.selectedParticipantIds.length > 0) {
         return filters.selectedParticipantIds.includes(p.id);
@@ -182,7 +180,6 @@ export default function AvailabilityGrid() {
     const overlapCount = availableUserIds.length;
     const percentage = totalCount > 0 ? (overlapCount / totalCount) * 100 : 0;
 
-    // Available users list
     const availableUsers = participants.filter((p) => availableUserIds.includes(p.id));
     const unavailableUsers = participants.filter(
       (p) => p.isCompleted && !availableUserIds.includes(p.id) && (filters.selectedParticipantIds.length === 0 || filters.selectedParticipantIds.includes(p.id))
@@ -197,18 +194,15 @@ export default function AvailabilityGrid() {
     };
   };
 
-  // Map intensity percentage to color classes
   const getCellBgClass = (slotId: string) => {
     const { percentage, overlapCount } = getCellDetails(slotId);
 
-    // Finalized Slot Highlight
     if (currentEvent.finalizedSlot === slotId) {
       return 'bg-violet-600 border-2 border-amber-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.8)] pulse-emerald';
     }
 
     const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
 
-    // If no one has submitted
     if (percentage === 0 && overlapCount === 0) {
       return isMeAvailable
         ? 'bg-primary/20 border border-primary/40'
@@ -220,16 +214,13 @@ export default function AvailabilityGrid() {
     if (percentage <= 60) return 'bg-emerald-500/40 text-emerald-800 dark:text-emerald-300';
     if (percentage <= 80) return 'bg-lime-500/60 text-lime-900 dark:text-lime-200';
     
-    // 81-100%
     return 'bg-emerald-600 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]';
   };
 
-  // Tooltip controller
   const handleMouseMove = (slotId: string, e: React.MouseEvent) => {
     setHoveredSlot(slotId);
     if (gridContainerRef.current) {
       const containerRect = gridContainerRef.current.getBoundingClientRect();
-      // Position tooltip relative to container
       setTooltipPos({
         x: e.clientX - containerRect.left + 15,
         y: e.clientY - containerRect.top + 15,
@@ -237,10 +228,12 @@ export default function AvailabilityGrid() {
     }
   };
 
-  // Host Finalize click handler
   const handleCellDoubleClick = (slotId: string) => {
     if (currentUser?.isHost) {
-      const confirmFinalize = window.confirm(`Finalize meeting at ${formatSlotDate(slotId)} at ${formatSlotTime(slotId)}?`);
+      const question = language === 'en' 
+        ? `Finalize meeting at ${formatSlotDate(slotId)} at ${formatSlotTime(slotId)}?`
+        : `Chốt lịch họp vào ${formatSlotDate(slotId)} lúc ${formatSlotTime(slotId)}?`;
+      const confirmFinalize = window.confirm(question);
       if (confirmFinalize) {
         finalizeSlot(currentEvent.finalizedSlot === slotId ? null : slotId);
       }
@@ -263,18 +256,17 @@ export default function AvailabilityGrid() {
 
   return (
     <div className="flex-1 flex flex-col gap-4 border border-border bg-card rounded-2xl p-4 md:p-6 shadow-sm overflow-hidden" ref={gridContainerRef}>
-      {/* Grid Controls: Desktop vs Mobile View */}
+      {/* Grid Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
         <div className="flex items-center gap-2">
           <CalendarDays className="w-5 h-5 text-primary" />
-          <h2 className="text-sm font-bold text-foreground m-0">Availability Heatmap</h2>
+          <h2 className="text-sm font-bold text-foreground m-0">{getTranslation(language, 'heatmapTitle')}</h2>
         </div>
 
         {/* Tools panel */}
         {currentUser && (
           <div className="flex items-center gap-2.5">
-            {/* Desktop paint brush / eraser */}
-            <div className="hidden sm:flex items-center bg-muted rounded-lg p-0.5 border border-border">
+            <div className="hidden sm:flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
               <button
                 onClick={() => setActiveTool('brush')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
@@ -282,7 +274,7 @@ export default function AvailabilityGrid() {
                 }`}
               >
                 <Brush className="w-3 h-3 text-primary" />
-                <span>Paint</span>
+                <span>{getTranslation(language, 'paintMode')}</span>
               </button>
               <button
                 onClick={() => setActiveTool('eraser')}
@@ -291,19 +283,19 @@ export default function AvailabilityGrid() {
                 }`}
               >
                 <Eraser className="w-3 h-3 text-destructive" />
-                <span>Eraser</span>
+                <span>{getTranslation(language, 'eraseMode')}</span>
               </button>
             </div>
 
             {/* Mobile Touch Mode toggle */}
-            <div className="sm:hidden flex items-center bg-muted rounded-lg p-0.5 border border-border">
+            <div className="sm:hidden flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border">
               <button
                 onClick={() => setTouchMode('paint')}
                 className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
                   touchMode === 'paint' ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                Paint Availability
+                {getTranslation(language, 'paintMobile')}
               </button>
               <button
                 onClick={() => setTouchMode('scroll')}
@@ -311,7 +303,7 @@ export default function AvailabilityGrid() {
                   touchMode === 'scroll' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                Scroll Grid
+                {getTranslation(language, 'scrollMobile')}
               </button>
             </div>
           </div>
@@ -332,7 +324,7 @@ export default function AvailabilityGrid() {
             <span className="text-xs font-bold block text-foreground">
               {getDayName(filteredDates[activeMobileDateIndex])}
             </span>
-            <span className="text-[10px] text-muted-foreground font-semibold">
+            <span className="text-[10px] text-muted-foreground font-bold">
               {getFormattedDate(filteredDates[activeMobileDateIndex])}
             </span>
           </div>
@@ -353,10 +345,9 @@ export default function AvailabilityGrid() {
           <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
             <tr>
               <th className="w-16 md:w-20 shrink-0 sticky left-0 z-30 bg-card border-r border-border p-1 text-[10px] font-bold text-muted-foreground uppercase text-center">
-                Time
+                {getTranslation(language, 'time')}
               </th>
 
-              {/* Desktop rendering (shows all days) */}
               {filteredDates.map((dateStr, idx) => (
                 <th
                   key={dateStr}
@@ -377,17 +368,15 @@ export default function AvailabilityGrid() {
                       <button
                         onClick={() => handleDayAction(dateStr, 'select')}
                         className="text-[9px] font-bold text-primary hover:underline cursor-pointer"
-                        title="Select entire day"
                       >
-                        All
+                        {getTranslation(language, 'all')}
                       </button>
                       <span className="text-muted-foreground/30 text-[9px]">|</span>
                       <button
                         onClick={() => handleDayAction(dateStr, 'clear')}
                         className="text-[9px] font-bold text-destructive hover:underline cursor-pointer"
-                        title="Clear entire day"
                       >
-                        Clear
+                        {getTranslation(language, 'clear')}
                       </button>
                     </div>
                   )}
@@ -427,11 +416,9 @@ export default function AvailabilityGrid() {
                         onTouchStart={(e) => handleTouchStart(slotId, e)}
                         onTouchMove={handleTouchMove}
                         onDoubleClick={() => handleCellDoubleClick(slotId)}
-                        title={currentUser?.isHost ? 'Double click slot to finalize/unfinalize meeting time' : undefined}
                       >
-                        {/* Display a crown emoji for finalized slot */}
                         {isFinalized && (
-                          <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized Meeting Time!">
+                          <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
                             👑
                           </div>
                         )}
@@ -459,7 +446,6 @@ export default function AvailabilityGrid() {
                   top: tooltipPos.y,
                 }}
               >
-                {/* Time header */}
                 <div className="font-bold border-b border-border/80 pb-1 mb-1.5 text-foreground flex items-center gap-1">
                   <span>{formatSlotDate(hoveredSlot)}</span>
                   <span>@</span>
@@ -469,22 +455,24 @@ export default function AvailabilityGrid() {
                 {isFinalized && (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
                     <Award className="w-3.5 h-3.5 fill-current" />
-                    <span>Selected Meeting Time!</span>
+                    <span>{getTranslation(language, 'finalized')}</span>
                   </div>
                 )}
 
                 {/* Overlap Summary */}
-                <div className="flex items-center gap-1.5 mb-2 font-semibold">
-                  <span className="text-primary">{overlapCount} of {totalCount} Available</span>
+                <div className="flex items-center gap-1.5 mb-2 font-bold">
+                  <span className="text-primary">
+                    {overlapCount} / {totalCount} {getTranslation(language, 'available')}
+                  </span>
                   <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
                 </div>
 
                 {/* Your state indicator */}
                 {currentUser && (
-                  <div className="mb-2 text-[10px] font-semibold">
-                    <span>Your Availability: </span>
+                  <div className="mb-2 text-[10px] font-bold">
+                    <span>{getTranslation(language, 'yourAvailability')}: </span>
                     <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
-                      {isMeAvailable ? 'Yes' : 'No'}
+                      {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
                     </span>
                   </div>
                 )}
@@ -492,10 +480,10 @@ export default function AvailabilityGrid() {
                 {/* Available list */}
                 {availableUsers.length > 0 && (
                   <div className="space-y-1">
-                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Available</div>
+                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
                     <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                       {availableUsers.map((u) => (
-                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted text-[10px] font-semibold text-foreground">
+                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground">
                           <span className={`w-1 h-1 rounded-full ${getDotColorClass(u.color)}`} />
                           <span>{u.name}</span>
                         </span>
@@ -507,10 +495,10 @@ export default function AvailabilityGrid() {
                 {/* Unavailable list */}
                 {unavailableUsers.length > 0 && (
                   <div className="space-y-1 mt-2">
-                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Unavailable</div>
+                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
                     <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
                       {unavailableUsers.map((u) => (
-                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-muted/40 text-[10px] font-medium text-muted-foreground">
+                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
                           <span>{u.name}</span>
                         </span>
                       ))}
@@ -527,7 +515,9 @@ export default function AvailabilityGrid() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-border">
         {/* Heatmap Legend */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0">Overlap Intensity:</span>
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider shrink-0">
+            {getTranslation(language, 'overlapIntensity')}:
+          </span>
           <div className="flex items-center gap-1">
             <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="0%" />
             <span className="w-5 h-3 rounded bg-blue-500/20" title="1-20%" />
@@ -536,16 +526,16 @@ export default function AvailabilityGrid() {
             <span className="w-5 h-3 rounded bg-lime-500/60" title="61-80%" />
             <span className="w-5 h-3 rounded bg-emerald-600" title="81-100%" />
           </div>
-          <span className="text-[10px] text-muted-foreground font-medium">0% → 100%</span>
+          <span className="text-[10px] text-muted-foreground font-semibold">0% → 100%</span>
         </div>
 
         {/* User Help tip */}
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
           <HelpCircle className="w-3.5 h-3.5 text-primary shrink-0" />
           {currentUser ? (
-            <span>Click and drag to paint availability. Double-click finalized slot.</span>
+            <span>{touchMode === 'paint' ? getTranslation(language, 'gridHelpTextMobile') : getTranslation(language, 'gridHelpText')}</span>
           ) : (
-            <span>Submit name in sidebar to edit your schedule.</span>
+            <span>{language === 'en' ? 'Submit name in sidebar to edit your schedule.' : 'Nhập tên của bạn ở thanh bên để chỉnh sửa lịch.'}</span>
           )}
         </div>
       </div>

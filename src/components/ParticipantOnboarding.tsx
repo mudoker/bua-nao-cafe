@@ -1,6 +1,8 @@
 "use client";
+
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
+import { getTranslation } from '../utils/translations';
 import { COLORS, AVATARS } from '../services/mockData';
 import { Users, Calendar, ArrowRight } from 'lucide-react';
 
@@ -11,6 +13,7 @@ interface OnboardingProps {
 export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const joinAsParticipant = useEventStore((state) => state.joinAsParticipant);
+  const language = useEventStore((state) => state.language);
 
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
@@ -22,11 +25,11 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Please enter your name');
+      setError(getTranslation(language, 'nameError'));
       return;
     }
     if (name.length > 25) {
-      setError('Name is too long (max 25 characters)');
+      setError(getTranslation(language, 'nameTooLong'));
       return;
     }
     setError('');
@@ -34,7 +37,6 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
     if (onJoinSuccess) onJoinSuccess();
   };
 
-  // Map tailwind color names to actual hex/rgb borders
   const getColorClass = (colorName: string) => {
     const map: Record<string, string> = {
       indigo: 'bg-indigo-500 hover:bg-indigo-600 ring-indigo-300 dark:ring-indigo-800',
@@ -52,40 +54,44 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
   return (
     <div className="w-full max-w-md mx-auto p-6 md:p-8 rounded-2xl border border-border bg-card shadow-xl glow-primary">
       <div className="flex flex-col items-center mb-6 text-center">
-        <div className="p-3 bg-primary/10 rounded-full mb-3">
+        <div className="p-3 bg-primary/10 rounded-full mb-3 border border-primary/20">
           <Calendar className="w-8 h-8 text-primary" />
         </div>
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">Join Event Workspace</span>
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">{currentEvent.title}</h2>
+        <span className="text-xs font-bold uppercase tracking-wider text-primary mb-1">
+          {getTranslation(language, 'joinWorkspace')}
+        </span>
+        <h2 className="text-2xl font-extrabold tracking-tight text-foreground">{currentEvent.title}</h2>
         {currentEvent.description && (
-          <p className="text-sm text-muted-foreground mt-2 line-clamp-2 max-w-xs">{currentEvent.description}</p>
+          <p className="text-xs text-muted-foreground mt-2 line-clamp-2 max-w-xs font-semibold">{currentEvent.description}</p>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name input */}
         <div className="space-y-2">
-          <label htmlFor="participant-name" className="text-sm font-medium text-foreground">
-            Display Name
+          <label htmlFor="participant-name" className="text-sm font-bold text-foreground">
+            {getTranslation(language, 'displayName')}
           </label>
           <input
             id="participant-name"
             type="text"
             required
-            placeholder="e.g., Jane Cooper"
+            placeholder={getTranslation(language, 'namePlaceholder')}
             value={name}
             onChange={(e) => {
               setName(e.target.value);
               if (error) setError('');
             }}
-            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-sm"
+            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all text-sm font-bold"
           />
-          {error && <p className="text-xs text-destructive font-medium mt-1">{error}</p>}
+          {error && <p className="text-xs text-destructive font-bold mt-1">{error}</p>}
         </div>
 
         {/* Color Palette Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground block">Choose Personal Theme</label>
+          <label className="text-sm font-bold text-foreground block">
+            {getTranslation(language, 'chooseTheme')}
+          </label>
           <div className="flex flex-wrap gap-3 py-1 justify-center md:justify-start">
             {COLORS.map((color) => (
               <button
@@ -103,7 +109,9 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
 
         {/* Avatar/Emoji Selector */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground block">Select Avatar Emoji</label>
+          <label className="text-sm font-bold text-foreground block">
+            {getTranslation(language, 'selectAvatar')}
+          </label>
           <div className="grid grid-cols-6 gap-2 max-w-xs mx-auto md:mx-0 py-1">
             {AVATARS.map((avatar) => (
               <button
@@ -124,16 +132,16 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
 
         <button
           type="submit"
-          className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-white bg-primary hover:bg-primary/90 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] text-sm"
+          className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-bold text-white bg-primary hover:bg-primary/90 transition-all cursor-pointer shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] text-sm"
         >
-          <span>Enter Scheduler</span>
+          <span>{getTranslation(language, 'enterScheduler')}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </form>
 
-      <div className="mt-6 pt-4 border-t border-border flex items-center justify-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-6 pt-4 border-t border-border flex items-center justify-center gap-2 text-xs text-muted-foreground font-semibold">
         <Users className="w-3.5 h-3.5" />
-        <span>No password or account required</span>
+        <span>{getTranslation(language, 'noRegistration')}</span>
       </div>
     </div>
   );

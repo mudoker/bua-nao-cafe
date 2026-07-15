@@ -1,7 +1,8 @@
 "use client";
+
 import { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
-import { Recommendation } from '../types';
+import { getTranslation } from '../utils/translations';
 import { formatSlotTime, formatSlotDate } from '../utils/time';
 import { Sparkles, Calendar, Check, Award, ArrowUpRight, ChevronRight, ChevronDown, AlertCircle } from 'lucide-react';
 
@@ -11,6 +12,7 @@ export default function Suggestions() {
   const currentUser = useEventStore((state) => state.currentUser);
   const getRecommendations = useEventStore((state) => state.getRecommendations);
   const finalizeSlot = useEventStore((state) => state.finalizeSlot);
+  const language = useEventStore((state) => state.language);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -37,25 +39,25 @@ export default function Suggestions() {
       <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
         <h2 className="text-sm font-bold text-foreground m-0 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
-          <span>Recommended Windows</span>
+          <span>{getTranslation(language, 'recommendedWindows')}</span>
         </h2>
-        <span className="text-[10px] font-semibold text-muted-foreground">AI Ranking Engine</span>
+        <span className="text-[10px] font-semibold text-muted-foreground">{getTranslation(language, 'aiRanking')}</span>
       </div>
 
       {!hasSubmissions ? (
-        <div className="text-center py-8 text-xs text-muted-foreground font-medium flex flex-col items-center gap-2">
+        <div className="text-center py-8 text-xs text-muted-foreground font-semibold flex flex-col items-center gap-2">
           <Calendar className="w-8 h-8 text-muted-foreground/40" />
-          <span>Awaiting responses...</span>
-          <span className="text-[10px] max-w-xs leading-normal">
-            Suggestions will populate automatically as soon as participants submit their schedules.
+          <span>{getTranslation(language, 'awaitingResponses')}</span>
+          <span className="text-[10px] max-w-xs leading-normal font-medium">
+            {getTranslation(language, 'awaitingDesc')}
           </span>
         </div>
       ) : recommendations.length === 0 ? (
-        <div className="text-center py-6 text-xs text-amber-500 font-medium flex flex-col items-center gap-2 bg-amber-500/5 rounded-xl border border-amber-500/10 p-4">
+        <div className="text-center py-6 text-xs text-amber-500 font-semibold flex flex-col items-center gap-2 bg-amber-500/5 rounded-xl border border-amber-500/10 p-4 animate-fadeIn">
           <AlertCircle className="w-8 h-8 text-amber-500/60" />
-          <span>No Overlap Found</span>
-          <span className="text-[10px] text-muted-foreground max-w-xs leading-normal">
-            There are no slots where participants overlap. Try editing details to expand the date range or extend daily visible hours.
+          <span>{getTranslation(language, 'noOverlap')}</span>
+          <span className="text-[10px] text-muted-foreground max-w-xs leading-normal font-medium">
+            {getTranslation(language, 'noOverlapDesc')}
           </span>
         </div>
       ) : (
@@ -70,12 +72,12 @@ export default function Suggestions() {
                 key={rec.slotId}
                 className={`border rounded-xl p-3 transition-all relative overflow-hidden ${
                   isFinalized
-                    ? 'border-violet-500 bg-violet-500/5 shadow-[0_0_12px_rgba(139,92,246,0.1)]'
-                    : 'border-border bg-muted/20 hover:bg-muted/40'
+                    ? 'border-violet-500 bg-violet-500/5 shadow-[0_0_12px_rgba(139,92,246,0.15)]'
+                    : 'border-border bg-muted/20 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
                 }`}
               >
                 {/* Ranking number badge */}
-                <div className="absolute top-0 left-0 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">
+                <div className="absolute top-0 left-0 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg border-r border-b border-primary/20">
                   #{index + 1}
                 </div>
 
@@ -84,24 +86,30 @@ export default function Suggestions() {
                     <span className="text-xs font-bold text-foreground block">
                       {formatSlotDate(rec.slotId)}
                     </span>
-                    <span className="text-[11px] text-muted-foreground font-semibold mt-0.5 block">
+                    <span className="text-[11px] text-muted-foreground font-bold mt-0.5 block">
                       {formatSlotTime(rec.slotId)}
                     </span>
                   </div>
 
                   {/* Score badge */}
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${getScoreColor(rec.score)}`}>
-                    Score {Math.round(rec.score)}
+                    {language === 'en' ? 'Score' : 'Điểm'} {Math.round(rec.score)}
                   </span>
                 </div>
 
                 {/* Overlap Summary progress bar */}
                 <div className="mt-3.5 space-y-1">
                   <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
-                    <span>{rec.overlapCount} of {rec.totalCount} participants</span>
-                    <span>{Math.round(rec.percentage)}% match</span>
+                    <span>
+                      {rec.overlapCount} / {rec.totalCount}{' '}
+                      {language === 'en' ? 'participants' : 'thành viên'}
+                    </span>
+                    <span>
+                      {Math.round(rec.percentage)}%{' '}
+                      {language === 'en' ? 'match' : 'trùng khớp'}
+                    </span>
                   </div>
-                  <div className="w-full bg-muted dark:bg-muted/30 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-muted dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${isFinalized ? 'bg-violet-500' : 'bg-primary'}`}
                       style={{ width: `${rec.percentage}%` }}
@@ -116,7 +124,7 @@ export default function Suggestions() {
                     onClick={() => setExpandedId(isExpanded ? null : rec.slotId)}
                     className="flex items-center text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
                   >
-                    <span>Why recommended</span>
+                    <span>{getTranslation(language, 'whyRecommended')}</span>
                     {isExpanded ? <ChevronDown className="w-3 h-3 ml-0.5" /> : <ChevronRight className="w-3 h-3 ml-0.5" />}
                   </button>
 
@@ -124,20 +132,20 @@ export default function Suggestions() {
                   {isHost ? (
                     <button
                       onClick={() => handleFinalize(rec.slotId)}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                         isFinalized
                           ? 'bg-violet-600 text-white shadow-sm'
                           : 'bg-background border border-border text-foreground hover:bg-muted/80'
                       }`}
                     >
                       {isFinalized ? <Check className="w-3 h-3" /> : <Award className="w-3 h-3" />}
-                      <span>{isFinalized ? 'Finalized' : 'Finalize Slot'}</span>
+                      <span>{isFinalized ? getTranslation(language, 'finalized') : getTranslation(language, 'finalizeSlot')}</span>
                     </button>
                   ) : (
                     isFinalized && (
-                      <span className="flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-500/10 px-2 py-0.5 rounded-lg border border-violet-500/20">
                         <Award className="w-3 h-3 fill-current" />
-                        <span>Finalized by Host</span>
+                        <span>{getTranslation(language, 'finalizedHost')}</span>
                       </span>
                     )
                   )}
@@ -145,9 +153,9 @@ export default function Suggestions() {
 
                 {/* Reason details drawer */}
                 {isExpanded && (
-                  <div className="mt-2.5 p-2 bg-background/50 border border-border/60 rounded-lg space-y-1 animate-slideDown">
+                  <div className="mt-2.5 p-2 bg-background/50 border border-border/60 rounded-xl space-y-1 animate-slideDown">
                     {rec.reasons.map((r, i) => (
-                      <div key={i} className="flex items-start gap-1.5 text-[9px] text-muted-foreground font-medium">
+                      <div key={i} className="flex items-start gap-1.5 text-[9px] text-muted-foreground font-semibold">
                         <ArrowUpRight className="w-3 h-3 text-primary shrink-0 mt-0.5" />
                         <span>{r}</span>
                       </div>
