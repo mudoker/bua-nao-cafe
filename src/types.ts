@@ -10,6 +10,11 @@ export interface Participant {
   password?: string; // Optional password to protect their availability grid
 }
 
+export interface AccountSession {
+  name: string;
+  password?: string;
+}
+
 export interface EventDetails {
   id: string;
   title: string;
@@ -33,6 +38,18 @@ export interface EventDetails {
 
 // Maps participant ID -> list of slot IDs ('YYYY-MM-DDTHH:mm') they are available in
 export type AvailabilityMap = Record<string, string[]>;
+
+export interface AccountEventSummary {
+  id: string;
+  title: string;
+  description?: string;
+  organizer: string;
+  dates: string[];
+  timezone: string;
+  isPending: boolean;
+  finalizedSlot?: string;
+  participant: Participant;
+}
 
 export interface Recommendation {
   slotId: string;

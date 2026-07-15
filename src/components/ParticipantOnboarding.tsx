@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { COLORS, AVATARS } from '../services/mockData';
+import { COLORS, AVATARS } from '../constants/profileOptions';
 import { Users, Calendar, ArrowRight } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,15 +41,16 @@ export default function ParticipantOnboarding({ onJoinSuccess }: OnboardingProps
     try {
       joinAsParticipant(name.trim(), selectedColor, selectedAvatar, password || undefined);
       if (onJoinSuccess) onJoinSuccess();
-    } catch (err: any) {
-      if (err.message === 'PASSWORD_MISMATCH') {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred.';
+      if (message === 'PASSWORD_MISMATCH') {
         setError(
           language === 'en'
             ? 'Incorrect password for this user. If this name is yours, enter the correct password. Otherwise, please choose a different name.'
             : 'Mật khẩu không đúng cho thành viên này. Nếu đây là tên của bạn, hãy nhập lại mật khẩu. Nếu không, vui lòng chọn một tên khác.'
         );
       } else {
-        setError(err.message || 'An error occurred.');
+        setError(message);
       }
     }
   };

@@ -3,8 +3,7 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { Calendar, Clock, Lock, ChevronDown, ChevronUp, AlertCircle, Sparkles } from 'lucide-react';
-import { TOPICS, DESCRIPTIONS, ORGANIZERS } from '../services/mockData';
+import { Calendar, Clock, Lock, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,13 +24,14 @@ interface CreatorProps {
 export default function EventCreator({ onCreated }: CreatorProps) {
   const createEvent = useEventStore((state) => state.createEvent);
   const joinAsParticipant = useEventStore((state) => state.joinAsParticipant);
+  const account = useEventStore((state) => state.account);
   const language = useEventStore((state) => state.language);
   const setLanguage = useEventStore((state) => state.setLanguage);
 
   // Form Fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [organizer, setOrganizer] = useState('');
+  const [organizer, setOrganizer] = useState(account?.name || '');
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [visibleHoursStart, setVisibleHoursStart] = useState(9); // 9 AM
@@ -50,26 +50,6 @@ export default function EventCreator({ onCreated }: CreatorProps) {
   const [preferredEnd, setPreferredEnd] = useState(17);
 
   const [error, setError] = useState('');
-
-  // Autofill topic generator
-  const handleAutofill = () => {
-    const randomTopic = TOPICS[Math.floor(Math.random() * TOPICS.length)];
-    const randomDesc = DESCRIPTIONS[Math.floor(Math.random() * DESCRIPTIONS.length)];
-    const randomOrg = ORGANIZERS[Math.floor(Math.random() * ORGANIZERS.length)];
-    
-    setTitle(randomTopic);
-    setDescription(randomDesc);
-    setOrganizer(randomOrg);
-
-    const dates: string[] = [];
-    const today = new Date();
-    for (let i = 0; i < 3; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      dates.push(d.toISOString().split('T')[0]);
-    }
-    setSelectedDates(dates);
-  };
 
   const handleDateToggle = (dateStr: string) => {
     if (selectedDates.includes(dateStr)) {
@@ -138,7 +118,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
       bufferMinutes,
     });
 
-    joinAsParticipant(organizer.trim(), 'indigo', '👑', undefined, true);
+    joinAsParticipant(organizer.trim(), 'indigo', '👑', account?.password, true);
     onCreated(eventId);
   };
 
@@ -217,17 +197,6 @@ export default function EventCreator({ onCreated }: CreatorProps) {
               VI
             </button>
           </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleAutofill}
-            className="flex items-center gap-1 text-[10px] font-bold hover:bg-primary/10 border-primary/20 text-primary cursor-pointer h-7"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>{getTranslation(language, 'quickAutofill')}</span>
-          </Button>
         </div>
       </CardHeader>
 

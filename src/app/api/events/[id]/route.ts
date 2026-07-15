@@ -22,7 +22,8 @@ export async function PUT(
     const body = await request.json();
     saveEvent(id, body);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to save event';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

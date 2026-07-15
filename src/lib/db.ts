@@ -32,6 +32,18 @@ export function getEvent(id: string): SavedEvent | null {
   }
 }
 
+export function getEvents(): SavedEvent[] {
+  ensureDb();
+  try {
+    const data = fs.readFileSync(DB_PATH, 'utf-8');
+    const db = JSON.parse(data);
+    return Object.values(db);
+  } catch (error) {
+    console.error('Error reading DB:', error);
+    return [];
+  }
+}
+
 export function saveEvent(id: string, eventData: SavedEvent) {
   ensureDb();
   try {

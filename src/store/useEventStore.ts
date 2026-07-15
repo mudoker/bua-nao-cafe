@@ -1,11 +1,15 @@
 import { create } from 'zustand';
-import { Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
-import { MOCK_PARTICIPANTS, generateMockAvailability, ADJECTIVES, NAMES, COLORS, AVATARS } from '../services/mockData';
+import { AccountEventSummary, AccountSession, Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
 import { generateSlots } from '../utils/time';
 import { Language } from '../utils/translations';
 import confetti from 'canvas-confetti';
 
+type FilterKey = keyof EventState['filters'];
+type FilterValue<K extends FilterKey> = EventState['filters'][K];
+
 interface EventState {
+  account: AccountSession | null;
+  accountEvents: AccountEventSummary[];
   currentEvent: EventDetails | null;
   participants: Participant[];
   availability: AvailabilityMap;
@@ -31,6 +35,9 @@ interface EventState {
   recentActivity: { id: string; message: string; timestamp: Date }[];
 
   // Actions
+  login: (name: string, password?: string) => Promise<void>;
+  logout: () => void;
+  loadAccountEvents: () => Promise<void>;
   createEvent: (details: Omit<EventDetails, 'id' | 'finalizedSlot'>) => string;
   loadEvent: (eventId: string) => Promise<void>;
   resetEvent: () => void;
@@ -56,7 +63,7 @@ interface EventState {
   // Filter actions
   toggleParticipantFilter: (id: string) => void;
   clearFilters: () => void;
-  setFilter: (key: string, value: any) => void;
+  setFilter: <K extends FilterKey>(key: K, value: FilterValue<K>) => void;
 
   addActivity: (message: string) => void;
   
@@ -72,6 +79,18 @@ const saveToLocalStorage = (state: {
 }) => {
   if (state.currentEvent) {
     localStorage.setItem(`event_${state.currentEvent.id}`, JSON.stringify(state));
+  }
+};
+
+const getStoredAccount = (): AccountSession | null => {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem('bua_nao_account');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem('bua_nao_account');
+    return null;
   }
 };
 
@@ -187,6 +206,8 @@ export const useEventStore = create<EventState>((set, get) => {
   };
 
   return {
+    account: getStoredAccount(),
+    accountEvents: [],
     currentEvent: null,
     participants: [],
     availability: {},
@@ -211,6 +232,56 @@ export const useEventStore = create<EventState>((set, get) => {
       minOverlapPercentage: 0,
     },
     recentActivity: [],
+
+    login: async (name, password) => {
+      const account = {
+        name: name.trim(),
+        password: password || undefined,
+      };
+
+      set({ account });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bua_nao_account', JSON.stringify(account));
+      }
+
+      await get().loadAccountEvents();
+    },
+
+    logout: () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('bua_nao_account');
+      }
+
+      set({
+        account: null,
+        accountEvents: [],
+        currentUser: null,
+        selectedSlots: [],
+        undoStack: [],
+        redoStack: [],
+      });
+    },
+
+    loadAccountEvents: async () => {
+      const { account } = get();
+      if (!account) {
+        set({ accountEvents: [] });
+        return;
+      }
+
+      const params = new URLSearchParams({ user: account.name });
+      if (account.password) params.set('password', account.password);
+
+      try {
+        const res = await fetch(`/api/events?${params.toString()}`);
+        if (!res.ok) throw new Error('Failed to load account events');
+        const events = await res.json();
+        set({ accountEvents: events });
+      } catch (error) {
+        console.error('Failed to load account events:', error);
+        set({ accountEvents: [] });
+      }
+    },
 
     createEvent: (details) => {
       const id = Math.random().toString(36).substring(2, 11);
@@ -249,24 +320,20 @@ export const useEventStore = create<EventState>((set, get) => {
         const res = await fetch(`/api/events/${eventId}`);
         if (!res.ok) throw new Error('Event not found');
         const data = await res.json();
-
-        // Check local storage to identify active browser session user
-        let localUser = null;
-        const saved = localStorage.getItem(`event_${eventId}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          // Only use local user if they exist in the fresh database participants list
-          if (parsed.currentUser && data.participants.some((p: any) => p.id === parsed.currentUser.id)) {
-            localUser = parsed.currentUser;
-          }
-        }
+        const { account } = get();
+        const accountUser = account
+          ? data.participants.find((p: Participant) => {
+              if (p.name.trim().toLowerCase() !== account.name.trim().toLowerCase()) return false;
+              return p.password ? p.password === account.password : true;
+            }) || null
+          : null;
 
         set({
           currentEvent: data.currentEvent,
           participants: data.participants,
           availability: data.availability,
-          currentUser: localUser,
-          undoStack: localUser ? [data.availability[localUser.id] || []] : [],
+          currentUser: accountUser,
+          undoStack: accountUser ? [data.availability[accountUser.id] || []] : [],
           redoStack: [],
           recentActivity: [{ id: 'system', message: `Loaded event "${data.currentEvent.title}"`, timestamp: new Date() }]
         });
@@ -280,8 +347,8 @@ export const useEventStore = create<EventState>((set, get) => {
             currentEvent: parsed.currentEvent,
             participants: parsed.participants,
             availability: parsed.availability,
-            currentUser: parsed.currentUser,
-            undoStack: parsed.currentUser ? [parsed.availability[parsed.currentUser.id] || []] : [],
+            currentUser: null,
+            undoStack: [],
             redoStack: [],
           });
         }
@@ -338,6 +405,7 @@ export const useEventStore = create<EventState>((set, get) => {
         };
         saveToLocalStorage(stateToSave);
         syncState(stateToSave);
+        get().loadAccountEvents();
 
         get().addActivity(`${name} rejoined the event.`);
         return updated;
@@ -378,6 +446,7 @@ export const useEventStore = create<EventState>((set, get) => {
       };
       saveToLocalStorage(stateToSave);
       syncState(stateToSave);
+      get().loadAccountEvents();
 
       get().addActivity(`${name} joined the event.`);
       return newParticipant;

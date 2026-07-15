@@ -12,27 +12,142 @@ import Analytics from '../components/Analytics';
 import EventCreator from '../components/EventCreator';
 import ParticipantOnboarding from '../components/ParticipantOnboarding';
 import ThemeToggle from '../components/ThemeToggle';
-import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee } from 'lucide-react';
+import { Calendar, Sparkles, Zap, ShieldCheck, Grid as GridIcon, Users, Lightbulb, BarChart3, Coffee, LogIn, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+function AccountLogin() {
+  const login = useEventStore((state) => state.login);
+  const language = useEventStore((state) => state.language);
+  const setLanguage = useEventStore((state) => state.setLanguage);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!name.trim()) {
+      setError(language === 'en' ? 'Please enter a username.' : 'Vui lòng nhập tên đăng nhập.');
+      return;
+    }
+
+    setError('');
+    setIsSubmitting(true);
+    await login(name.trim(), password || undefined);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-200">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(120,119,198,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(120,119,198,0.04)_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1f293710_1px,transparent_1px),linear-gradient(to_bottom,#1f293710_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+
+      <Card className="w-full max-w-sm z-10 shadow-xl border-border glow-primary">
+        <CardHeader className="items-center text-center">
+          <div className="p-3 bg-primary/10 rounded-full border border-primary/20 mb-2">
+            <Coffee className="w-8 h-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-extrabold tracking-tight">
+            {language === 'en' ? 'Log in to Bữa Nào Cafe?' : 'Đăng nhập Bữa Nào Cafe?'}
+          </CardTitle>
+          <div className="flex items-center bg-muted dark:bg-zinc-800 rounded-lg p-0.5 border border-border text-[10px] font-bold mt-2">
+            <button type="button" onClick={() => setLanguage('en')} className={`px-2 py-0.5 rounded cursor-pointer ${language === 'en' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+              EN
+            </button>
+            <button type="button" onClick={() => setLanguage('vi')} className={`px-2 py-0.5 rounded cursor-pointer ${language === 'vi' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
+              VI
+            </button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="account-name" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {language === 'en' ? 'Username' : 'Tên đăng nhập'}
+              </label>
+              <Input
+                id="account-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={language === 'en' ? 'Your name' : 'Tên của bạn'}
+                className="h-11 font-semibold"
+                autoFocus
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="account-password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {language === 'en' ? 'Password (optional)' : 'Mật khẩu (tùy chọn)'}
+              </label>
+              <Input
+                id="account-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={language === 'en' ? 'Leave blank for a simple account' : 'Có thể bỏ trống'}
+                className="h-11 font-semibold"
+              />
+            </div>
+            {error && <p className="text-xs font-bold text-destructive">{error}</p>}
+            <Button type="submit" className="w-full h-11 font-bold cursor-pointer" disabled={isSubmitting}>
+              <LogIn className="w-4 h-4" />
+              <span>{isSubmitting ? (language === 'en' ? 'Entering...' : 'Đang vào...') : (language === 'en' ? 'Enter app' : 'Vào ứng dụng')}</span>
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 function HomeContent() {
   const searchParams = useSearchParams();
   const eventId = searchParams.get('event');
   
+  const account = useEventStore((state) => state.account);
+  const accountEvents = useEventStore((state) => state.accountEvents);
   const currentEvent = useEventStore((state) => state.currentEvent);
   const currentUser = useEventStore((state) => state.currentUser);
   const loadEvent = useEventStore((state) => state.loadEvent);
+  const joinAsParticipant = useEventStore((state) => state.joinAsParticipant);
+  const loadAccountEvents = useEventStore((state) => state.loadAccountEvents);
+  const logout = useEventStore((state) => state.logout);
   const language = useEventStore((state) => state.language);
 
   // Active tab state for mobile view
   const [activeMobileTab, setActiveMobileTab] = useState<'grid' | 'team' | 'suggestions' | 'charts'>('grid');
+  const handleMobileTabChange = (value: string) => {
+    if (value === 'grid' || value === 'team' || value === 'suggestions' || value === 'charts') {
+      setActiveMobileTab(value);
+    }
+  };
 
   // Load event from local storage if query param is present
   useEffect(() => {
-    if (eventId) {
+    if (account && eventId) {
       loadEvent(eventId);
     }
-  }, [eventId, loadEvent]);
+  }, [account, eventId, loadEvent]);
+
+  useEffect(() => {
+    if (account) {
+      loadAccountEvents();
+    }
+  }, [account, loadAccountEvents]);
+
+  useEffect(() => {
+    if (!account || !currentEvent || currentUser) return;
+
+    try {
+      joinAsParticipant(account.name, 'indigo', '☕', account.password);
+    } catch (error) {
+      console.error('Failed to enter event as account:', error);
+    }
+  }, [account, currentEvent, currentUser, joinAsParticipant]);
 
   // Periodic polling for real-time collaboration updates
   useEffect(() => {
@@ -78,12 +193,30 @@ function HomeContent() {
     loadEvent(id);
   };
 
+  const openEvent = (id: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('event', id);
+    window.history.pushState({}, '', url.toString());
+    loadEvent(id);
+  };
+
+  if (!account) {
+    return <AccountLogin />;
+  }
+
   // State 1: No Event Loaded (Show Creator & Landing)
   if (!currentEvent) {
+    const pendingEvents = accountEvents.filter((event) => event.isPending);
+    const previousEvents = accountEvents.filter((event) => !event.isPending);
+
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-hidden transition-colors duration-200">
         {/* Floating Theme Toggle */}
-        <div className="absolute top-4 right-4 z-50">
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+          <Button onClick={logout} variant="outline" size="sm" className="h-9 font-bold cursor-pointer">
+            <LogOut className="w-3.5 h-3.5" />
+            <span>{language === 'en' ? 'Log out' : 'Đăng xuất'}</span>
+          </Button>
           <ThemeToggle />
         </div>
 
@@ -134,7 +267,61 @@ function HomeContent() {
             </div>
           </div>
 
-          <EventCreator onCreated={handleEventCreated} />
+          <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-6 items-start">
+            <EventCreator onCreated={handleEventCreated} />
+            <Card className="border-border bg-card shadow-sm">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" />
+                  <span>{language === 'en' ? 'Your events' : 'Lịch của bạn'}</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {accountEvents.length === 0 ? (
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {language === 'en' ? 'No saved events for this account yet.' : 'Chưa có lịch nào cho tài khoản này.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {language === 'en' ? 'Pending' : 'Đang chờ'}
+                      </p>
+                      {(pendingEvents.length ? pendingEvents : []).map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => openEvent(event.id)}
+                          className="w-full text-left p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer"
+                        >
+                          <span className="block text-xs font-bold text-foreground">{event.title}</span>
+                          <span className="block text-[10px] font-semibold text-muted-foreground mt-1">{event.dates.join(', ')}</span>
+                        </button>
+                      ))}
+                      {pendingEvents.length === 0 && <p className="text-xs font-semibold text-muted-foreground">{language === 'en' ? 'Nothing pending.' : 'Không có lịch đang chờ.'}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {language === 'en' ? 'Previous' : 'Đã qua'}
+                      </p>
+                      {previousEvents.map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => openEvent(event.id)}
+                          className="w-full text-left p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors cursor-pointer opacity-80"
+                        >
+                          <span className="block text-xs font-bold text-foreground">{event.title}</span>
+                          <span className="block text-[10px] font-semibold text-muted-foreground mt-1">{event.finalizedSlot || event.dates.join(', ')}</span>
+                        </button>
+                      ))}
+                      {previousEvents.length === 0 && <p className="text-xs font-semibold text-muted-foreground">{language === 'en' ? 'No previous events.' : 'Chưa có lịch đã qua.'}</p>}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </main>
 
         {/* Clean Footer */}
@@ -186,7 +373,7 @@ function HomeContent() {
         {/* Mobile Layout (Tab Content using shadcn tabs) */}
         <Tabs
           value={activeMobileTab}
-          onValueChange={(val) => setActiveMobileTab(val as any)}
+          onValueChange={handleMobileTabChange}
           className="w-full lg:hidden flex flex-col gap-4"
         >
           <TabsList className="grid grid-cols-4 w-full h-11 bg-muted/60 dark:bg-zinc-900 border border-border p-1 rounded-xl">

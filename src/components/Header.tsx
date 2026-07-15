@@ -17,7 +17,7 @@ import {
 export default function Header() {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const currentUser = useEventStore((state) => state.currentUser);
-  const resetEvent = useEventStore((state) => state.resetEvent);
+  const logout = useEventStore((state) => state.logout);
   const undo = useEventStore((state) => state.undo);
   const redo = useEventStore((state) => state.redo);
   const clearCurrentAvailability = useEventStore((state) => state.clearCurrentAvailability);
@@ -187,15 +187,15 @@ export default function Header() {
 
           <ThemeToggle />
 
-          {/* Exit Event workspace */}
+          {/* Account logout */}
           <Button
-            onClick={resetEvent}
+            onClick={logout}
             variant="ghost"
             size="sm"
             className="flex items-center gap-1 font-bold cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{getTranslation(language, 'exit')}</span>
+            <span className="hidden sm:inline">{language === 'en' ? 'Log out' : 'Đăng xuất'}</span>
           </Button>
         </div>
       </div>
