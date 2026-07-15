@@ -386,9 +386,9 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
 
                 return (
-                  <tr key={timeStr} className="border-b border-border/50 last:border-0 sm:min-h-40">
+                  <tr key={timeStr} className="border-b border-border/50 last:border-0">
                     {/* Left Column (Sticky Time) */}
-                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
+                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-40">
                       {formattedTime}
                     </td>
 
@@ -407,7 +407,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                             render={
                               <td
                                 data-slot-id={slotId}
-                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all ${cellBg} ${
+                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-40 ${cellBg} ${
                                   idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
                                 } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
@@ -452,7 +452,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
                               {currentUser && (
                                 <div className="mb-2 text-[10px] font-bold">
-                                  <span className="text-foreground">{getTranslation(language, 'yourAvailability')}: </span>
+                                  <span className="text-black dark:text-white">{getTranslation(language, 'yourAvailability')}: </span>
                                   <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
                                     {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
                                   </span>
