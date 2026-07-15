@@ -1,0 +1,164 @@
+"use client";
+import { useState } from 'react';
+import { useEventStore } from '../store/useEventStore';
+import { Recommendation } from '../types';
+import { formatSlotTime, formatSlotDate } from '../utils/time';
+import { Sparkles, Calendar, Check, Award, ArrowUpRight, ChevronRight, ChevronDown, AlertCircle } from 'lucide-react';
+
+export default function Suggestions() {
+  const currentEvent = useEventStore((state) => state.currentEvent);
+  const participants = useEventStore((state) => state.participants);
+  const currentUser = useEventStore((state) => state.currentUser);
+  const getRecommendations = useEventStore((state) => state.getRecommendations);
+  const finalizeSlot = useEventStore((state) => state.finalizeSlot);
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  if (!currentEvent) return null;
+
+  const recommendations = getRecommendations();
+  const completedParticipants = participants.filter(p => p.isCompleted);
+  const hasSubmissions = completedParticipants.length > 0;
+
+  const handleFinalize = (slotId: string) => {
+    const isCurrentlyFinalized = currentEvent.finalizedSlot === slotId;
+    finalizeSlot(isCurrentlyFinalized ? null : slotId);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+    if (score >= 60) return 'text-lime-500 bg-lime-500/10 border-lime-500/20';
+    if (score >= 30) return 'text-blue-500 bg-blue-500/10 border-blue-500/20';
+    return 'text-muted-foreground bg-muted border-border';
+  };
+
+  return (
+    <div className="border border-border bg-card rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+        <h2 className="text-sm font-bold text-foreground m-0 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span>Recommended Windows</span>
+        </h2>
+        <span className="text-[10px] font-semibold text-muted-foreground">AI Ranking Engine</span>
+      </div>
+
+      {!hasSubmissions ? (
+        <div className="text-center py-8 text-xs text-muted-foreground font-medium flex flex-col items-center gap-2">
+          <Calendar className="w-8 h-8 text-muted-foreground/40" />
+          <span>Awaiting responses...</span>
+          <span className="text-[10px] max-w-xs leading-normal">
+            Suggestions will populate automatically as soon as participants submit their schedules.
+          </span>
+        </div>
+      ) : recommendations.length === 0 ? (
+        <div className="text-center py-6 text-xs text-amber-500 font-medium flex flex-col items-center gap-2 bg-amber-500/5 rounded-xl border border-amber-500/10 p-4">
+          <AlertCircle className="w-8 h-8 text-amber-500/60" />
+          <span>No Overlap Found</span>
+          <span className="text-[10px] text-muted-foreground max-w-xs leading-normal">
+            There are no slots where participants overlap. Try editing details to expand the date range or extend daily visible hours.
+          </span>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {recommendations.slice(0, 5).map((rec, index) => {
+            const isExpanded = expandedId === rec.slotId;
+            const isFinalized = currentEvent.finalizedSlot === rec.slotId;
+            const isHost = currentUser?.isHost;
+
+            return (
+              <div
+                key={rec.slotId}
+                className={`border rounded-xl p-3 transition-all relative overflow-hidden ${
+                  isFinalized
+                    ? 'border-violet-500 bg-violet-500/5 shadow-[0_0_12px_rgba(139,92,246,0.1)]'
+                    : 'border-border bg-muted/20 hover:bg-muted/40'
+                }`}
+              >
+                {/* Ranking number badge */}
+                <div className="absolute top-0 left-0 bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">
+                  #{index + 1}
+                </div>
+
+                <div className="flex items-start justify-between gap-2 mt-2">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-foreground block">
+                      {formatSlotDate(rec.slotId)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground font-semibold mt-0.5 block">
+                      {formatSlotTime(rec.slotId)}
+                    </span>
+                  </div>
+
+                  {/* Score badge */}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${getScoreColor(rec.score)}`}>
+                    Score {Math.round(rec.score)}
+                  </span>
+                </div>
+
+                {/* Overlap Summary progress bar */}
+                <div className="mt-3.5 space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-muted-foreground">
+                    <span>{rec.overlapCount} of {rec.totalCount} participants</span>
+                    <span>{Math.round(rec.percentage)}% match</span>
+                  </div>
+                  <div className="w-full bg-muted dark:bg-muted/30 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${isFinalized ? 'bg-violet-500' : 'bg-primary'}`}
+                      style={{ width: `${rec.percentage}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Actions row */}
+                <div className="mt-3 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+                  {/* Reasons toggle */}
+                  <button
+                    onClick={() => setExpandedId(isExpanded ? null : rec.slotId)}
+                    className="flex items-center text-[10px] font-bold text-muted-foreground hover:text-foreground cursor-pointer"
+                  >
+                    <span>Why recommended</span>
+                    {isExpanded ? <ChevronDown className="w-3 h-3 ml-0.5" /> : <ChevronRight className="w-3 h-3 ml-0.5" />}
+                  </button>
+
+                  {/* Finalize slot button */}
+                  {isHost ? (
+                    <button
+                      onClick={() => handleFinalize(rec.slotId)}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                        isFinalized
+                          ? 'bg-violet-600 text-white shadow-sm'
+                          : 'bg-background border border-border text-foreground hover:bg-muted/80'
+                      }`}
+                    >
+                      {isFinalized ? <Check className="w-3 h-3" /> : <Award className="w-3 h-3" />}
+                      <span>{isFinalized ? 'Finalized' : 'Finalize Slot'}</span>
+                    </button>
+                  ) : (
+                    isFinalized && (
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-violet-500 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                        <Award className="w-3 h-3 fill-current" />
+                        <span>Finalized by Host</span>
+                      </span>
+                    )
+                  )}
+                </div>
+
+                {/* Reason details drawer */}
+                {isExpanded && (
+                  <div className="mt-2.5 p-2 bg-background/50 border border-border/60 rounded-lg space-y-1 animate-slideDown">
+                    {rec.reasons.map((r, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[9px] text-muted-foreground font-medium">
+                        <ArrowUpRight className="w-3 h-3 text-primary shrink-0 mt-0.5" />
+                        <span>{r}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
