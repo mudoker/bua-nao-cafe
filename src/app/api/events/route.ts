@@ -14,7 +14,8 @@ export async function GET(request: Request) {
   const events = getEvents()
     .map(({ currentEvent, participants }) => {
       const participant = participants.find((p) => {
-        if (p.name.trim().toLowerCase() !== name) return false;
+        const participantAccount = p.accountName || p.name.trim().toLowerCase();
+        if (participantAccount !== name) return false;
         return p.password ? p.password === password : true;
       });
 

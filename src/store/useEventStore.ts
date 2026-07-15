@@ -94,6 +94,8 @@ const getStoredAccount = (): AccountSession | null => {
   }
 };
 
+const normalizeAccountName = (name: string) => name.trim().toLowerCase();
+
 const syncState = (state: {
   currentEvent: EventDetails | null;
   participants: Participant[];
@@ -323,7 +325,8 @@ export const useEventStore = create<EventState>((set, get) => {
         const { account } = get();
         const accountUser = account
           ? data.participants.find((p: Participant) => {
-              if (p.name.trim().toLowerCase() !== account.name.trim().toLowerCase()) return false;
+              const participantAccount = p.accountName || normalizeAccountName(p.name);
+              if (participantAccount !== normalizeAccountName(account.name)) return false;
               return p.password ? p.password === account.password : true;
             }) || null
           : null;
@@ -369,11 +372,15 @@ export const useEventStore = create<EventState>((set, get) => {
     },
 
     joinAsParticipant: (name, color, avatar, password, isHost = false) => {
-      const { currentEvent, participants, availability } = get();
+      const { account, currentEvent, participants, availability } = get();
       if (!currentEvent) throw new Error('No active event');
 
       // Check if participant already exists by name
-      const existing = participants.find(p => p.name.toLowerCase() === name.toLowerCase());
+      const normalizedAccountName = normalizeAccountName(account?.name || name);
+      const existing = participants.find((p) => {
+        const participantAccount = p.accountName || normalizeAccountName(p.name);
+        return participantAccount === normalizedAccountName;
+      });
       if (existing) {
         // If password is correct or if existing has no password
         if (existing.password && existing.password !== password) {
@@ -384,6 +391,7 @@ export const useEventStore = create<EventState>((set, get) => {
         // Update password if they provided one but existing didn't have one
         const updated = {
           ...existing,
+          accountName: existing.accountName || normalizedAccountName,
           isOnline: true,
           lastActive: new Date().toISOString(),
           password: existing.password || password || undefined
@@ -415,6 +423,7 @@ export const useEventStore = create<EventState>((set, get) => {
       const newParticipant: Participant = {
         id,
         name,
+        accountName: normalizedAccountName,
         color,
         avatar,
         isOnline: true,

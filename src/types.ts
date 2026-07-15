@@ -1,6 +1,7 @@
 export interface Participant {
   id: string;
   name: string;
+  accountName?: string; // Normalized login name used to recover this participant across devices
   color: string; // Tailwind color name or hex
   avatar: string; // emoji or initials
   isOnline: boolean;
