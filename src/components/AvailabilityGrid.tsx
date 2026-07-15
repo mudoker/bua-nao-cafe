@@ -286,7 +286,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
   return (
     <TooltipProvider delay={200}>
-    <Card className={cn("flex-1 flex flex-col gap-4 border-border bg-card shadow-sm overflow-hidden", className)}>
+    <Card className={cn("border-border bg-card shadow-sm", className)}>
       {/* Grid Controls */}
       <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0 border-b border-border">
         <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 m-0">
@@ -295,7 +295,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-4 flex-1 flex flex-col min-h-0">
+      <CardContent className="space-y-4 pt-4">
         {/* Date Carousel Selector for Mobile */}
         {filteredDates.length > 1 && (
           <div className="flex sm:hidden items-center justify-between gap-2 p-1.5 bg-muted/30 rounded-xl">
@@ -329,7 +329,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         )}
 
         {/* Main Grid View */}
-        <div className="overflow-auto flex-1 min-h-0 border border-border rounded-xl relative bg-card">
+        <div className="overflow-x-auto border border-border rounded-xl relative bg-card">
           <table
             className="w-full min-h-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
@@ -386,7 +386,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
 
                 return (
-                  <tr key={timeStr} className="border-b border-border/50 last:border-0">
+                  <tr key={timeStr} className="border-b border-border/50 last:border-0 sm:min-h-20">
                     {/* Left Column (Sticky Time) */}
                     <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none">
                       {formattedTime}
