@@ -333,6 +333,10 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                       {day}
                     </span>
                   ))}
+                  {/* Padding empty slots to align with Monday start */}
+                  {calendarDays.length > 0 && Array.from({ length: (new Date(calendarDays[0].dateStr).getDay() + 6) % 7 }).map((_, i) => (
+                    <div key={`pad-${i}`} className="h-9 w-full" />
+                  ))}
                   {calendarDays.map((day) => {
                     const isSelected = selectedDates.includes(day.dateStr);
                     return (
@@ -342,7 +346,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
                         onClick={() => handleDateToggle(day.dateStr)}
                         className={`h-9 w-full flex flex-col items-center justify-center rounded-lg cursor-pointer transition-all text-xs font-bold ${
                           isSelected
-                            ? 'bg-primary text-white scale-[1.03] shadow-sm'
+                            ? 'bg-primary text-white dark:text-black scale-[1.03] shadow-sm'
                             : day.isWeekend
                             ? 'bg-muted/30 text-muted-foreground hover:bg-muted dark:bg-muted/10'
                             : 'hover:bg-muted text-foreground'
@@ -412,16 +416,20 @@ export default function EventCreator({ onCreated }: CreatorProps) {
               <label htmlFor="slotDuration" className="text-xs font-bold text-muted-foreground uppercase tracking-wider block">
                 {getTranslation(language, 'slotDuration')}
               </label>
-              <Select value={String(slotDuration)} onValueChange={(val) => setSlotDuration(Number(val))}>
-                <SelectTrigger id="slotDuration" className="w-full !h-11 font-bold text-foreground">
-                  <SelectValue placeholder="Duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="15">{getTranslation(language, 'durationMinutes', { min: 15 })}</SelectItem>
-                  <SelectItem value="30">{getTranslation(language, 'durationMinutes', { min: 30 })}</SelectItem>
-                  <SelectItem value="60">{getTranslation(language, 'durationMinutes', { min: 60 })}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative flex items-center">
+                <Input
+                  id="slotDuration"
+                  type="number"
+                  min={1}
+                  max={1440}
+                  value={slotDuration}
+                  onChange={(e) => setSlotDuration(Math.max(1, Number(e.target.value)))}
+                  className="font-bold text-foreground h-11 pr-16 pl-3.5"
+                />
+                <span className="absolute right-3.5 text-xs text-muted-foreground font-bold uppercase tracking-wide pointer-events-none select-none">
+                  {language === 'en' ? 'mins' : 'phút'}
+                </span>
+              </div>
             </div>
           </div>
 
