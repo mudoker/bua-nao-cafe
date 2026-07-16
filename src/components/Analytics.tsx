@@ -348,30 +348,39 @@ export default function Analytics({ className }: { className?: string }) {
                   })}
                 </svg>
 
-                <div className="absolute inset-0 flex">
-                  {visibleSlotProfile.map((h, index) => (
-                    <div
-                      key={h.slotId}
-                      className="flex-1 h-full cursor-pointer relative"
-                      onMouseEnter={() => setHoveredPoint(index)}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                    >
-                      {hoveredPoint === index && (
-                        <div
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg p-1.5 shadow-md z-30 pointer-events-none text-[9px] font-bold text-foreground text-center mb-1 whitespace-nowrap"
-                          style={{
-                            left: `${(index / Math.max(visibleSlotProfile.length - 1, 1)) * 100}%`
-                          }}
-                        >
-                          {h.formattedDate}
+                <div className="absolute inset-0">
+                  {visibleSlotProfile.map((h, index) => {
+                    const divisor = Math.max(visibleSlotProfile.length - 1, 1);
+                    const x = padding + (index / divisor) * (width - padding * 2);
+                    const y = height - padding - (h.score / 100) * (height - padding * 2);
+
+                    return (
+                      <Tooltip key={h.slotId}>
+                        <TooltipTrigger
+                          render={
+                            <button
+                              type="button"
+                              aria-label={`${h.formattedDate} ${h.formattedTime}`}
+                              className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              style={{
+                                left: `${(x / width) * 100}%`,
+                                top: `${(y / height) * 100}%`,
+                              }}
+                              onMouseEnter={() => setHoveredPoint(index)}
+                              onMouseLeave={() => setHoveredPoint(null)}
+                            />
+                          }
+                        />
+                        <TooltipContent side="top" sideOffset={8} className="bg-card text-foreground border border-border shadow-md text-[9px] font-bold text-center">
+                          <span>{h.formattedDate}</span>
                           <span className="block text-muted-foreground">{h.formattedTime}</span>
                           <span className="block text-primary">
                             {h.votes} / {totalCompleted} {language === 'en' ? 'available' : 'người rảnh'}
                           </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
               </div>
 
