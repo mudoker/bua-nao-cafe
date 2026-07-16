@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
 import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate, parseLocalDate } from '../utils/time';
-import { HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
+import { HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award, Eye, Pencil } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -29,6 +29,17 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const [paintedSlots, setPaintedSlots] = useState<string[]>([]);
   const [touchMode, setTouchMode] = useState<'paint' | 'scroll'>('scroll');
   const [activeMobileDateIndex, setActiveMobileDateIndex] = useState(0);
+  const [longPressedSlot, setLongPressedSlot] = useState<string | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tooltipCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTouchTimeRef = useRef(0);
+  const touchStartRef = useRef<{
+    slotId: string;
+    x: number;
+    y: number;
+    moved: boolean;
+    longPressTriggered: boolean;
+  } | null>(null);
 
   if (!currentEvent) return null;
 
@@ -102,6 +113,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
   // Mouse drag handlers
   const handleMouseDown = (slotId: string, e: React.MouseEvent) => {
+    if (Date.now() - lastTouchTimeRef.current < 700) return;
     if (!currentUser) return;
     
     // Left click only
@@ -140,48 +152,99 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     setPaintedSlots([]);
   };
 
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const clearTooltipCloseTimer = () => {
+    if (tooltipCloseTimerRef.current) {
+      clearTimeout(tooltipCloseTimerRef.current);
+      tooltipCloseTimerRef.current = null;
+    }
+  };
+
+  const closeLongPressTooltipSoon = () => {
+    clearTooltipCloseTimer();
+    tooltipCloseTimerRef.current = setTimeout(() => {
+      setLongPressedSlot(null);
+    }, 1800);
+  };
+
   useEffect(() => {
     window.addEventListener('mouseup', handleGlobalMouseUp);
     return () => {
       window.removeEventListener('mouseup', handleGlobalMouseUp);
+      clearLongPressTimer();
+      clearTooltipCloseTimer();
     };
   }, []);
 
   // Touch handlers
-  const handleTouchStart = (slotId: string, e: React.TouchEvent) => {
-    if (!currentUser || touchMode === 'scroll') return;
+  const handleCellTouchMove = (e: React.TouchEvent) => {
+    clearLongPressTimer();
+    const start = touchStartRef.current;
+    const touch = e.touches[0];
+    if (!start || !touch) return;
 
-    e.preventDefault();
-    setIsMouseDown(true);
-    // Paint mode = add only. Never remove on touch paint — tap the cell again to deselect
-    // is intentionally disabled so dragging doesn't accidentally erase selections.
-    setPaintMode('add');
-    setPaintedSlots([slotId]);
-    const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
-    if (!isAvailable) {
-      toggleSlotAvailability(slotId);
+    const moved = Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10;
+    if (moved) {
+      start.moved = true;
+      setLongPressedSlot(null);
     }
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isMouseDown || !paintMode || !currentUser || touchMode === 'scroll') return;
-
+  const handleCellTouchStart = (slotId: string, e: React.TouchEvent) => {
+    clearLongPressTimer();
+    clearTooltipCloseTimer();
     const touch = e.touches[0];
     if (!touch) return;
+    lastTouchTimeRef.current = Date.now();
 
-    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (!element) return;
+    if (touchMode === 'paint') e.preventDefault();
 
-    const slotId = element.getAttribute('data-slot-id');
-    if (slotId && !paintedSlots.includes(slotId)) {
-      setPaintedSlots([...paintedSlots, slotId]);
-      const currentSlots = availability[currentUser.id] || [];
-      const hasSlot = currentSlots.includes(slotId);
-      // Paint mode only adds, never removes during a drag
-      if (!hasSlot) {
-        toggleSlotAvailability(slotId);
+    setLongPressedSlot(null);
+    touchStartRef.current = {
+      slotId,
+      x: touch.clientX,
+      y: touch.clientY,
+      moved: false,
+      longPressTriggered: false,
+    };
+
+    longPressTimerRef.current = setTimeout(() => {
+      if (touchStartRef.current?.slotId === slotId && !touchStartRef.current.moved) {
+        touchStartRef.current.longPressTriggered = true;
+        setLongPressedSlot(slotId);
       }
+    }, 500);
+  };
+
+  const handleCellTouchEnd = () => {
+    const start = touchStartRef.current;
+    clearLongPressTimer();
+    touchStartRef.current = null;
+
+    if (!start || start.moved) {
+      closeLongPressTooltipSoon();
+      return;
     }
+
+    if (start.longPressTriggered) {
+      closeLongPressTooltipSoon();
+      return;
+    }
+
+    if (touchMode === 'paint' && currentUser) {
+      toggleSlotAvailability(start.slotId);
+      setLongPressedSlot(null);
+      return;
+    }
+
+    setLongPressedSlot(start.slotId);
+    closeLongPressTooltipSoon();
   };
 
   // Quick Action: Fill/Clear whole day
@@ -302,6 +365,23 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           <CalendarDays className="w-5 h-5 text-primary" />
           <span>{getTranslation(language, 'heatmapTitle')}</span>
         </CardTitle>
+        {currentUser && (
+          <Button
+            type="button"
+            variant={touchMode === 'paint' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              clearLongPressTimer();
+              clearTooltipCloseTimer();
+              setLongPressedSlot(null);
+              setTouchMode(touchMode === 'paint' ? 'scroll' : 'paint');
+            }}
+            className="flex h-8 items-center gap-1.5 px-2.5 text-[11px] font-bold sm:hidden"
+          >
+            {touchMode === 'paint' ? <Eye className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
+            <span>{touchMode === 'paint' ? getTranslation(language, 'viewMode') : getTranslation(language, 'editMode')}</span>
+          </Button>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-4 pt-4">
@@ -411,7 +491,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
                       return (
-                        <Tooltip key={slotId}>
+                        <Tooltip key={slotId} open={longPressedSlot ? longPressedSlot === slotId : undefined}>
                           <TooltipTrigger
                             render={
                               <td
@@ -421,8 +501,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                                 } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
                                 onMouseEnter={() => handleMouseEnterCell(slotId)}
-                                onTouchStart={(e) => handleTouchStart(slotId, e)}
-                                onTouchMove={handleTouchMove}
+                                onTouchStart={(e) => handleCellTouchStart(slotId, e)}
+                                onTouchMove={handleCellTouchMove}
+                                onTouchEnd={handleCellTouchEnd}
+                                onTouchCancel={handleCellTouchEnd}
                                 onDoubleClick={() => handleCellDoubleClick(slotId)}
                               >
                                 {isFinalized && (
@@ -528,7 +610,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-semibold">
             <HelpCircle className="w-3.5 h-3.5 text-primary shrink-0" />
             {currentUser ? (
-              <span>{touchMode === 'paint' ? getTranslation(language, 'gridHelpTextMobile') : getTranslation(language, 'gridHelpText')}</span>
+              <>
+                <span className="sm:hidden">{getTranslation(language, 'gridHelpTextMobile')}</span>
+                <span className="hidden sm:inline">{getTranslation(language, 'gridHelpText')}</span>
+              </>
             ) : (
               <span>{language === 'en' ? 'Submit name in sidebar to edit your schedule.' : 'Nhập tên của bạn ở thanh bên để chỉnh sửa lịch.'}</span>
             )}
