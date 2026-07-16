@@ -395,9 +395,9 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 const formattedTime = formatSlotTime(`2000-01-01T${timeStr}`);
 
                 return (
-                  <tr key={timeStr} className="border-b border-border/50 last:border-0">
+                  <tr key={timeStr} className="h-12 border-b border-border/50 last:border-0 sm:h-16">
                     {/* Left Column (Sticky Time) */}
-                    <td className="sticky left-0 z-10 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-16">
+                    <td className="sticky left-0 z-10 h-12 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-16">
                       {formattedTime}
                     </td>
 
@@ -416,7 +416,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                             render={
                               <td
                                 data-slot-id={slotId}
-                                className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-16 ${cellBg} ${
+                                className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-16 ${cellBg} ${
                                   idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
                                 } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
