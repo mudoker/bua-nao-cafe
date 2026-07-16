@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { generateSlots, formatSlotTime } from '../utils/time';
-import { BarChart3, TrendingUp, Info, Calendar, Percent, Users, Award } from 'lucide-react';
+import { generateSlots, formatSlotDate, formatSlotTime, parseLocalDate } from '../utils/time';
+import { BarChart3, TrendingUp, Info, Calendar, Percent, Users, Award, CircleHelp } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,7 @@ export default function Analytics({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const availability = useEventStore((state) => state.availability);
+  const filters = useEventStore((state) => state.filters);
   const language = useEventStore((state) => state.language);
 
   const [hoveredBar, setHoveredBar] = useState<string | null>(null);
@@ -19,7 +21,9 @@ export default function Analytics({ className }: { className?: string }) {
 
   if (!currentEvent) return null;
 
-  const completedParticipants = participants.filter(p => p.isCompleted);
+  const completedParticipants = filters.selectedParticipantIds.length > 0
+    ? participants.filter((p) => filters.selectedParticipantIds.includes(p.id))
+    : participants.filter(p => p.isCompleted);
   const totalCompleted = completedParticipants.length;
 
   if (totalCompleted === 0) {
@@ -38,61 +42,59 @@ export default function Analytics({ className }: { className?: string }) {
     );
   }
 
+  const filteredDates = currentEvent.dates.filter((dateStr) => {
+    if (!filters.hideWeekend) return true;
+    const day = parseLocalDate(dateStr).getDay();
+    return day !== 0 && day !== 6;
+  });
+
   const slots = generateSlots(
-    currentEvent.dates,
+    filteredDates,
     currentEvent.visibleHoursStart,
     currentEvent.visibleHoursEnd,
     currentEvent.slotDuration
-  );
+  ).filter((slotId) => {
+    if (!filters.workingHoursOnly) return true;
+    const hour = Number(slotId.split('T')[1]?.split(':')[0] || 0);
+    const start = currentEvent.preferredWorkingHoursStart ?? currentEvent.visibleHoursStart;
+    const end = currentEvent.preferredWorkingHoursEnd ?? currentEvent.visibleHoursEnd;
+    return hour >= start && hour < end;
+  });
 
-  // 1. Calculate Daily Availability totals (Histogram)
-  const dailyAvailability = currentEvent.dates.map((dateStr) => {
+  // 1. Calculate the best single-slot overlap for each day.
+  const dailyAvailability = filteredDates.map((dateStr) => {
     const daySlots = slots.filter((s) => s.startsWith(dateStr));
-    let totalVotes = 0;
+    let bestVotes = 0;
     
     daySlots.forEach((slotId) => {
-      completedParticipants.forEach((p) => {
-        if (availability[p.id]?.includes(slotId)) {
-          totalVotes++;
-        }
-      });
+      const votes = completedParticipants.filter((p) => availability[p.id]?.includes(slotId)).length;
+      bestVotes = Math.max(bestVotes, votes);
     });
 
-    const maxPossibleVotes = daySlots.length * totalCompleted;
-    const percentage = maxPossibleVotes > 0 ? (totalVotes / maxPossibleVotes) * 100 : 0;
+    const percentage = totalCompleted > 0 ? (bestVotes / totalCompleted) * 100 : 0;
+    const date = parseLocalDate(dateStr);
 
     return {
       dateStr,
       percentage,
-      totalVotes,
-      formattedDate: new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      weekday: new Date(dateStr).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN', { weekday: 'short' }),
+      bestVotes,
+      dayNumber: date.toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN', { day: 'numeric' }),
+      weekday: date.toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN', { weekday: 'short' }),
     };
   });
 
-  // 2. Calculate Hourly availability profile (Peak Attendance)
-  const uniqueTimes = Array.from(new Set(slots.map((s) => s.split('T')[1]))).sort();
-  const hourlyProfile = uniqueTimes.map((timeStr, idx) => {
-    let votes = 0;
-    const correspondingSlots = currentEvent.dates.map((d) => `${d}T${timeStr}`);
-    
-    correspondingSlots.forEach((slotId) => {
-      completedParticipants.forEach((p) => {
-        if (availability[p.id]?.includes(slotId)) {
-          votes++;
-        }
-      });
-    });
-
-    const totalPossible = correspondingSlots.length * totalCompleted;
-    const score = totalPossible > 0 ? (votes / totalPossible) * 100 : 0;
+  // 2. Calculate direct per-slot overlap over the visible schedule.
+  const slotProfile = slots.map((slotId, idx) => {
+    const votes = completedParticipants.filter((p) => availability[p.id]?.includes(slotId)).length;
+    const score = totalCompleted > 0 ? (votes / totalCompleted) * 100 : 0;
 
     return {
-      timeStr,
+      slotId,
       idx,
       score,
       votes,
-      formattedTime: formatSlotTime(`2000-01-01T${timeStr}`),
+      formattedDate: formatSlotDate(slotId, language),
+      formattedTime: formatSlotTime(slotId),
     };
   });
 
@@ -110,6 +112,9 @@ export default function Analytics({ className }: { className?: string }) {
       }
     });
 
+    const slotPercentage = totalCompleted > 0 ? (slotVotes / totalCompleted) * 100 : 0;
+    if (slotPercentage < filters.minOverlapPercentage) return;
+
     if (slotVotes > highestOverlapCount) {
       highestOverlapCount = slotVotes;
       highestOverlapSlot = slotId;
@@ -121,6 +126,7 @@ export default function Analytics({ className }: { className?: string }) {
     : 0;
 
   const highestOverlapPct = totalCompleted > 0 ? Math.round((highestOverlapCount / totalCompleted) * 100) : 0;
+  const visibleSlotProfile = slotProfile.filter((slot) => slot.score >= filters.minOverlapPercentage);
 
   // Chart sizes
   const width = 500;
@@ -129,9 +135,10 @@ export default function Analytics({ className }: { className?: string }) {
 
   // Path generator for Curved Area Chart (Peak Attendance)
   const getAreaPath = () => {
-    if (hourlyProfile.length === 0) return '';
-    const points = hourlyProfile.map((h, index) => {
-      const x = padding + (index / (hourlyProfile.length - 1)) * (width - padding * 2);
+    if (visibleSlotProfile.length === 0) return '';
+    const divisor = Math.max(visibleSlotProfile.length - 1, 1);
+    const points = visibleSlotProfile.map((h, index) => {
+      const x = padding + (index / divisor) * (width - padding * 2);
       const y = height - padding - (h.score / 100) * (height - padding * 2);
       return { x, y };
     });
@@ -151,9 +158,10 @@ export default function Analytics({ className }: { className?: string }) {
   };
 
   const getLinePath = () => {
-    if (hourlyProfile.length === 0) return '';
-    const points = hourlyProfile.map((h, index) => {
-      const x = padding + (index / (hourlyProfile.length - 1)) * (width - padding * 2);
+    if (visibleSlotProfile.length === 0) return '';
+    const divisor = Math.max(visibleSlotProfile.length - 1, 1);
+    const points = visibleSlotProfile.map((h, index) => {
+      const x = padding + (index / divisor) * (width - padding * 2);
       const y = height - padding - (h.score / 100) * (height - padding * 2);
       return { x, y };
     });
@@ -223,7 +231,7 @@ export default function Analytics({ className }: { className?: string }) {
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">{getTranslation(language, 'bestSlot')}</span>
             <span className="text-xs font-bold text-foreground truncate mt-1">
               {highestOverlapSlot
-                ? `${new Date(highestOverlapSlot.split('T')[0]).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN', { month: 'short', day: 'numeric' })} @ ${formatSlotTime(highestOverlapSlot)}`
+                ? `${formatSlotDate(highestOverlapSlot, language)} @ ${formatSlotTime(highestOverlapSlot)}`
                 : 'None'}
             </span>
           </div>
@@ -250,7 +258,9 @@ export default function Analytics({ className }: { className?: string }) {
                     {hoveredBar === day.dateStr && (
                       <div className="absolute -top-10 bg-card border border-border text-[9px] font-bold py-1 px-2 rounded shadow-md z-30 pointer-events-none text-foreground text-center">
                         {Math.round(day.percentage)}% {language === 'en' ? 'Popular' : 'Rảnh'}
-                        <span className="block text-[8px] text-muted-foreground">({day.totalVotes} {language === 'en' ? 'total votes' : 'lượt rảnh'})</span>
+                        <span className="block text-[8px] text-muted-foreground">
+                          ({day.bestVotes} / {totalCompleted} {language === 'en' ? 'available' : 'người rảnh'})
+                        </span>
                       </div>
                     )}
                     {/* Bar */}
@@ -272,7 +282,7 @@ export default function Analytics({ className }: { className?: string }) {
                 {dailyAvailability.map((day) => (
                   <div key={day.dateStr} className="text-center w-full truncate leading-tight">
                     <span className="block">{day.weekday}</span>
-                    <span className="block text-[8px] font-semibold">{day.formattedDate.split(' ')[1]}</span>
+                    <span className="block text-[8px] font-semibold">{day.dayNumber}</span>
                   </div>
                 ))}
               </div>
@@ -284,6 +294,17 @@ export default function Analytics({ className }: { className?: string }) {
             <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
               <span>{getTranslation(language, 'peakHours')}</span>
+              <Tooltip>
+                <TooltipTrigger
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={language === 'en' ? 'Explain peak meeting hours' : 'Giải thích khung giờ cao điểm'}
+                >
+                  <CircleHelp className="h-3.5 w-3.5" />
+                </TooltipTrigger>
+                <TooltipContent side="top" align="start" className="max-w-64 text-xs leading-normal">
+                  {getTranslation(language, 'peakHoursTooltip')}
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             <div className="h-44 bg-muted/10 border border-border/40 rounded-xl p-3.5 flex flex-col justify-between relative overflow-visible">
@@ -299,21 +320,22 @@ export default function Analytics({ className }: { className?: string }) {
                   <line x1={padding} y1={height / 2} x2={width - padding} y2={height / 2} stroke="rgba(100,116,139,0.1)" strokeDasharray="3" />
                   <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="rgba(100,116,139,0.15)" />
 
-                  {hourlyProfile.length > 0 && (
+                  {visibleSlotProfile.length > 0 && (
                     <path d={getAreaPath()} fill="url(#areaGradient)" />
                   )}
 
-                  {hourlyProfile.length > 0 && (
+                  {visibleSlotProfile.length > 0 && (
                     <path d={getLinePath()} stroke="rgb(99, 102, 241)" strokeWidth="3" fill="none" strokeLinecap="round" />
                   )}
 
-                  {hourlyProfile.map((h, index) => {
-                    const x = padding + (index / (hourlyProfile.length - 1)) * (width - padding * 2);
+                  {visibleSlotProfile.map((h, index) => {
+                    const divisor = Math.max(visibleSlotProfile.length - 1, 1);
+                    const x = padding + (index / divisor) * (width - padding * 2);
                     const y = height - padding - (h.score / 100) * (height - padding * 2);
 
                     return (
                       <circle
-                        key={h.timeStr}
+                        key={h.slotId}
                         cx={x}
                         cy={y}
                         r={hoveredPoint === index ? 6 : 0}
@@ -327,9 +349,9 @@ export default function Analytics({ className }: { className?: string }) {
                 </svg>
 
                 <div className="absolute inset-0 flex">
-                  {hourlyProfile.map((h, index) => (
+                  {visibleSlotProfile.map((h, index) => (
                     <div
-                      key={h.timeStr}
+                      key={h.slotId}
                       className="flex-1 h-full cursor-pointer relative"
                       onMouseEnter={() => setHoveredPoint(index)}
                       onMouseLeave={() => setHoveredPoint(null)}
@@ -338,12 +360,13 @@ export default function Analytics({ className }: { className?: string }) {
                         <div
                           className="absolute bottom-full left-1/2 -translate-x-1/2 bg-card border border-border rounded-lg p-1.5 shadow-md z-30 pointer-events-none text-[9px] font-bold text-foreground text-center mb-1 whitespace-nowrap"
                           style={{
-                            left: `${(index / (hourlyProfile.length - 1)) * 100}%`
+                            left: `${(index / Math.max(visibleSlotProfile.length - 1, 1)) * 100}%`
                           }}
                         >
-                          {h.formattedTime}
+                          {h.formattedDate}
+                          <span className="block text-muted-foreground">{h.formattedTime}</span>
                           <span className="block text-primary">
-                            {Math.round(h.score)}% {language === 'en' ? 'Popular' : 'Mức độ rảnh'}
+                            {h.votes} / {totalCompleted} {language === 'en' ? 'available' : 'người rảnh'}
                           </span>
                         </div>
                       )}
@@ -354,9 +377,9 @@ export default function Analytics({ className }: { className?: string }) {
 
               {/* X Axis labels */}
               <div className="flex justify-between border-t border-border/60 pt-2 text-[9px] font-bold text-muted-foreground px-4">
-                <span>{hourlyProfile[0]?.formattedTime || ''}</span>
-                <span>{hourlyProfile[Math.floor(hourlyProfile.length / 2)]?.formattedTime || ''}</span>
-                <span>{hourlyProfile[hourlyProfile.length - 1]?.formattedTime || ''}</span>
+                <span>{visibleSlotProfile[0]?.formattedTime || ''}</span>
+                <span>{visibleSlotProfile[Math.floor(visibleSlotProfile.length / 2)]?.formattedTime || ''}</span>
+                <span>{visibleSlotProfile[visibleSlotProfile.length - 1]?.formattedTime || ''}</span>
               </div>
             </div>
           </div>
