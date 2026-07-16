@@ -7,6 +7,7 @@ import EventLanding from '@/components/home/EventLanding';
 import EventOnboardingScreen from '@/components/home/EventOnboardingScreen';
 import HomeDashboard from '@/components/home/HomeDashboard';
 import { useEventStore } from '@/store/useEventStore';
+import { Participant } from '@/types';
 
 export default function HomeContent() {
   const searchParams = useSearchParams();
@@ -54,13 +55,15 @@ export default function HomeContent() {
           JSON.stringify(store.availability) !== JSON.stringify(data.availability) ||
           JSON.stringify(store.currentEvent) !== JSON.stringify(data.currentEvent)
         ) {
+          const updatedCurrentUser = store.currentUser
+            ? data.participants.find((participant: Participant) => participant.id === store.currentUser?.id) || store.currentUser
+            : null;
+
           useEventStore.setState({
             currentEvent: data.currentEvent,
             participants: data.participants,
-            availability: {
-              ...data.availability,
-              ...(store.currentUser ? { [store.currentUser.id]: store.availability[store.currentUser.id] || [] } : {}),
-            },
+            availability: data.availability,
+            currentUser: updatedCurrentUser,
           });
         }
       } catch (error) {
