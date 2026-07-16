@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
+import { formatDateKey, parseLocalDate } from '../utils/time';
 import { Calendar, Clock, Lock, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -66,7 +67,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
     for (let i = 0; i < 14; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const str = d.toISOString().split('T')[0];
+      const str = formatDateKey(d);
       days.push({
         dateStr: str,
         dayOfMonth: d.getDate(),
@@ -123,6 +124,9 @@ export default function EventCreator({ onCreated }: CreatorProps) {
   };
 
   const calendarDays = getCalendarDays();
+  const weekdayLabels = language === 'en'
+    ? ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+    : ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
   const applyPreset = (presetType: 'weekend' | '3days' | 'nextweek') => {
     const dates: string[] = [];
@@ -132,14 +136,14 @@ export default function EventCreator({ onCreated }: CreatorProps) {
       for (let i = 0; i < 3; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(formatDateKey(d));
       }
     } else if (presetType === 'weekend') {
       for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         if (d.getDay() === 6 || d.getDay() === 0) {
-          dates.push(d.toISOString().split('T')[0]);
+          dates.push(formatDateKey(d));
         }
       }
     } else if (presetType === 'nextweek') {
@@ -149,7 +153,7 @@ export default function EventCreator({ onCreated }: CreatorProps) {
         const d = new Date(today);
         d.setDate(today.getDate() + check);
         if (d.getDay() !== 0 && d.getDay() !== 6) {
-          dates.push(d.toISOString().split('T')[0]);
+          dates.push(formatDateKey(d));
           added++;
         }
         check++;
@@ -297,13 +301,13 @@ export default function EventCreator({ onCreated }: CreatorProps) {
 
                 {/* Date selection grid */}
                 <div className="grid grid-cols-7 gap-1 border border-border rounded-xl p-2.5 bg-background">
-                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => (
+                  {weekdayLabels.map((day, i) => (
                     <span key={i} className="text-[10px] font-bold text-muted-foreground text-center select-none py-1">
                       {day}
                     </span>
                   ))}
                   {/* Padding empty slots to align with Monday start */}
-                  {calendarDays.length > 0 && Array.from({ length: (new Date(calendarDays[0].dateStr).getDay() + 6) % 7 }).map((_, i) => (
+                  {calendarDays.length > 0 && Array.from({ length: (parseLocalDate(calendarDays[0].dateStr).getDay() + 6) % 7 }).map((_, i) => (
                     <div key={`pad-${i}`} className="h-9 w-full" />
                   ))}
                   {calendarDays.map((day) => {

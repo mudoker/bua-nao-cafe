@@ -36,25 +36,41 @@ export function formatSlotTime(slotId: string): string {
   return `${displayHour}:${minStr} ${ampm}`;
 }
 
-export function formatSlotDate(slotId: string): string {
+type DateLanguage = 'en' | 'vi';
+
+const getDateLocale = (language: DateLanguage = 'en') => language === 'vi' ? 'vi-VN' : 'en-US';
+
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
+}
+
+export function formatDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function formatSlotDate(slotId: string, language: DateLanguage = 'en'): string {
   const datePart = slotId.split('T')[0];
   if (!datePart) return '';
-  const date = new Date(datePart);
-  return date.toLocaleDateString('en-US', {
+  const date = parseLocalDate(datePart);
+  return date.toLocaleDateString(getDateLocale(language), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
 }
 
-export function getDayName(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { weekday: 'short' });
+export function getDayName(dateStr: string, language: DateLanguage = 'en'): string {
+  const date = parseLocalDate(dateStr);
+  return date.toLocaleDateString(getDateLocale(language), { weekday: 'short' });
 }
 
-export function getFormattedDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+export function getFormattedDate(dateStr: string, language: DateLanguage = 'en'): string {
+  const date = parseLocalDate(dateStr);
+  return date.toLocaleDateString(getDateLocale(language), { month: 'short', day: 'numeric' });
 }
 
 export function getHoursArray(startHour: number, endHour: number): number[] {
