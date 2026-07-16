@@ -14,6 +14,7 @@ export default function Suggestions({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
   const participants = useEventStore((state) => state.participants);
   const currentUser = useEventStore((state) => state.currentUser);
+  const filters = useEventStore((state) => state.filters);
   const getRecommendations = useEventStore((state) => state.getRecommendations);
   const finalizeSlot = useEventStore((state) => state.finalizeSlot);
   const language = useEventStore((state) => state.language);
@@ -23,8 +24,10 @@ export default function Suggestions({ className }: { className?: string }) {
   if (!currentEvent) return null;
 
   const recommendations = getRecommendations();
-  const completedParticipants = participants.filter(p => p.isCompleted);
-  const hasSubmissions = completedParticipants.length > 0;
+  const visibleParticipants = filters.selectedParticipantIds.length > 0
+    ? participants.filter((p) => filters.selectedParticipantIds.includes(p.id))
+    : participants.filter(p => p.isCompleted);
+  const hasSubmissions = visibleParticipants.length > 0;
 
   const handleFinalize = (slotId: string) => {
     const isCurrentlyFinalized = currentEvent.finalizedSlot === slotId;
@@ -91,7 +94,7 @@ export default function Suggestions({ className }: { className?: string }) {
                   <div className="flex items-start justify-between gap-2 mt-2">
                     <div className="min-w-0">
                       <span className="text-xs font-bold text-foreground block">
-                        {formatSlotDate(rec.slotId)}
+                        {formatSlotDate(rec.slotId, language)}
                       </span>
                       <span className="text-[11px] text-muted-foreground font-bold mt-0.5 block">
                         {formatSlotTime(rec.slotId)}

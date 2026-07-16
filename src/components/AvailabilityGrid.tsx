@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate } from '../utils/time';
+import { generateSlots, formatSlotTime, formatSlotDate, getDayName, getFormattedDate, parseLocalDate } from '../utils/time';
 import { HelpCircle, ChevronLeft, ChevronRight, CalendarDays, Award } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,18 +35,34 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   // Filter dates
   const filteredDates = currentEvent.dates.filter(dateStr => {
     if (filters.hideWeekend) {
-      const day = new Date(dateStr).getDay();
+      const day = parseLocalDate(dateStr).getDay();
       return day !== 0 && day !== 6; // exclude Sat/Sun
     }
     return true;
   });
+
+  const isSlotInPreferredHours = (slotId: string) => {
+    if (!filters.workingHoursOnly) return true;
+    const timePart = slotId.split('T')[1];
+    const hour = Number(timePart?.split(':')[0] || 0);
+    const start = currentEvent.preferredWorkingHoursStart ?? currentEvent.visibleHoursStart;
+    const end = currentEvent.preferredWorkingHoursEnd ?? currentEvent.visibleHoursEnd;
+    return hour >= start && hour < end;
+  };
+
+  const activeParticipants = React.useMemo(() => participants.filter((p) => {
+    if (filters.selectedParticipantIds.length > 0) {
+      return filters.selectedParticipantIds.includes(p.id);
+    }
+    return p.isCompleted;
+  }), [participants, filters.selectedParticipantIds]);
 
   const slots = generateSlots(
     filteredDates,
     currentEvent.visibleHoursStart,
     currentEvent.visibleHoursEnd,
     currentEvent.slotDuration
-  );
+  ).filter(isSlotInPreferredHours);
 
   // Find min and max overlap count across all active slots in the grid
   const { maxOverlap, minOverlap } = React.useMemo(() => {
@@ -55,17 +71,13 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     
     // Helper to count votes for a slot
     const getSlotOverlapCount = (slotId: string) => {
-      const activeParticipants = participants.filter((p) => {
-        if (filters.selectedParticipantIds.length > 0) {
-          return filters.selectedParticipantIds.includes(p.id);
-        }
-        return p.isCompleted;
-      });
       return activeParticipants.filter((p) => availability[p.id]?.includes(slotId)).length;
     };
 
     slots.forEach((slotId) => {
       const count = getSlotOverlapCount(slotId);
+      const percentage = activeParticipants.length > 0 ? (count / activeParticipants.length) * 100 : 0;
+      if (percentage < filters.minOverlapPercentage) return;
       if (count > maxVal) maxVal = count;
       if (count > 0 && count < minVal) minVal = count;
     });
@@ -74,7 +86,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       maxOverlap: maxVal,
       minOverlap: minVal === Infinity ? 0 : minVal,
     };
-  }, [slots, participants, availability, filters.selectedParticipantIds]);
+  }, [slots, activeParticipants, availability, filters.minOverlapPercentage]);
 
   // Clean mobile slide bounds
   useEffect(() => {
@@ -186,13 +198,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
   // Calculations for cells
   const getCellDetails = (slotId: string) => {
-    const activeParticipants = participants.filter((p) => {
-      if (filters.selectedParticipantIds.length > 0) {
-        return filters.selectedParticipantIds.includes(p.id);
-      }
-      return p.isCompleted;
-    });
-
     const totalCount = activeParticipants.length;
     const availableUserIds = activeParticipants
       .filter((p) => availability[p.id]?.includes(slotId))
@@ -216,10 +221,14 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   };
 
   const getCellBgClass = (slotId: string) => {
-    const { overlapCount } = getCellDetails(slotId);
+    const { overlapCount, percentage } = getCellDetails(slotId);
 
     if (currentEvent.finalizedSlot === slotId) {
       return 'bg-violet-600 border border-amber-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.8)] pulse-emerald';
+    }
+
+    if (filters.minOverlapPercentage > 0 && percentage < filters.minOverlapPercentage) {
+      return 'bg-muted/20 hover:bg-muted/35 dark:bg-muted/10 dark:hover:bg-muted/20';
     }
 
     if (overlapCount === 0) {
@@ -237,11 +246,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       intensity = 20 + ((overlapCount - minOverlap) / (maxOverlap - minOverlap)) * 80;
     }
 
-    // 5 clearly distinct bands — each with a strong, unique hue
-    if (intensity <= 20) return 'bg-blue-900/70 text-blue-200 dark:bg-blue-950/80 dark:text-blue-300 ring-1 ring-inset ring-blue-700/30';
-    if (intensity <= 40) return 'bg-sky-600/60 text-sky-100 dark:bg-sky-700/70 dark:text-sky-200 ring-1 ring-inset ring-sky-500/30';
-    if (intensity <= 60) return 'bg-teal-500/70 text-white dark:bg-teal-600/75 ring-1 ring-inset ring-teal-400/40';
-    if (intensity <= 80) return 'bg-lime-500 text-lime-950 dark:bg-lime-500/90 ring-1 ring-inset ring-lime-400/50 shadow-[0_0_8px_rgba(132,204,22,0.3)]';
+    // Partial overlap moves from warm to green so it reads as "getting better".
+    if (intensity <= 20) return 'bg-amber-300/65 text-amber-950 dark:bg-amber-500/45 dark:text-amber-100 ring-1 ring-inset ring-amber-400/45';
+    if (intensity <= 40) return 'bg-orange-400/70 text-orange-950 dark:bg-orange-500/55 dark:text-orange-100 ring-1 ring-inset ring-orange-400/45';
+    if (intensity <= 60) return 'bg-teal-400/75 text-teal-950 dark:bg-teal-500/65 dark:text-teal-50 ring-1 ring-inset ring-teal-300/45';
+    if (intensity <= 80) return 'bg-lime-400/90 text-lime-950 dark:bg-lime-500/80 ring-1 ring-inset ring-lime-300/50 shadow-[0_0_8px_rgba(132,204,22,0.3)]';
     return 'bg-emerald-400 text-emerald-950 ring-1 ring-inset ring-emerald-300/60 shadow-[0_0_14px_rgba(52,211,153,0.5)] font-black';
   };
 
@@ -249,8 +258,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const handleCellDoubleClick = (slotId: string) => {
     if (currentUser?.isHost) {
       const question = language === 'en' 
-        ? `Finalize meeting at ${formatSlotDate(slotId)} at ${formatSlotTime(slotId)}?`
-        : `Chốt lịch họp vào ${formatSlotDate(slotId)} lúc ${formatSlotTime(slotId)}?`;
+        ? `Finalize meeting at ${formatSlotDate(slotId, language)} at ${formatSlotTime(slotId)}?`
+        : `Chốt lịch họp vào ${formatSlotDate(slotId, language)} lúc ${formatSlotTime(slotId)}?`;
       const confirmFinalize = window.confirm(question);
       if (confirmFinalize) {
         finalizeSlot(currentEvent.finalizedSlot === slotId ? null : slotId);
@@ -310,10 +319,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
             </Button>
             <div className="text-center">
               <span className="text-xs font-bold block text-foreground leading-none">
-                {getDayName(filteredDates[activeMobileDateIndex])}
+                {getDayName(filteredDates[activeMobileDateIndex], language)}
               </span>
               <span className="text-[10px] text-muted-foreground font-bold mt-1 block leading-none">
-                {getFormattedDate(filteredDates[activeMobileDateIndex])}
+                {getFormattedDate(filteredDates[activeMobileDateIndex], language)}
               </span>
             </div>
             <Button
@@ -349,10 +358,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                     }`}
                   >
                     <div className="text-xs font-bold text-foreground leading-tight">
-                      {getDayName(dateStr)}
+                      {getDayName(dateStr, language)}
                     </div>
                     <div className="text-[10px] text-muted-foreground font-semibold leading-tight mt-0.5">
-                      {getFormattedDate(dateStr)}
+                      {getFormattedDate(dateStr, language)}
                     </div>
 
                     {/* Quick Select Actions */}
@@ -409,7 +418,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                                 data-slot-id={slotId}
                                 className={`border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-16 ${cellBg} ${
                                   idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                                } ${isDimmed ? 'opacity-[0.22] dark:opacity-[0.15]' : 'opacity-100'}`}
+                                } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
                                 onMouseEnter={() => handleMouseEnterCell(slotId)}
                                 onTouchStart={(e) => handleTouchStart(slotId, e)}
@@ -431,7 +440,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                           >
                             <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
                               <div className="font-bold border-b border-border/80 pb-1.5 mb-2 text-foreground flex items-center gap-1">
-                                <span>{formatSlotDate(slotId)}</span>
+                                <span>{formatSlotDate(slotId, language)}</span>
                                 <span className="text-muted-foreground">@</span>
                                 <span>{formatSlotTime(slotId)}</span>
                               </div>
@@ -506,13 +515,13 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
             </span>
             <div className="flex items-center gap-1">
               <span className="w-5 h-3 rounded bg-muted/40 border border-border" title="None" />
-              <span className="w-5 h-3 rounded bg-blue-900/70 ring-1 ring-inset ring-blue-700/30" title="Low" />
-              <span className="w-5 h-3 rounded bg-sky-600/60 ring-1 ring-inset ring-sky-500/30" title="Low-Mid" />
-              <span className="w-5 h-3 rounded bg-teal-500/70 ring-1 ring-inset ring-teal-400/40" title="Mid" />
-              <span className="w-5 h-3 rounded bg-lime-500 ring-1 ring-inset ring-lime-400/50" title="High" />
+              <span className="w-5 h-3 rounded bg-amber-300/65 ring-1 ring-inset ring-amber-400/45" title="Low" />
+              <span className="w-5 h-3 rounded bg-orange-400/70 ring-1 ring-inset ring-orange-400/45" title="Low-Mid" />
+              <span className="w-5 h-3 rounded bg-teal-400/75 ring-1 ring-inset ring-teal-300/45" title="Mid" />
+              <span className="w-5 h-3 rounded bg-lime-400/90 ring-1 ring-inset ring-lime-300/50" title="High" />
               <span className="w-5 h-3 rounded bg-emerald-400 ring-1 ring-inset ring-emerald-300/60" title="Peak" />
             </div>
-            <span className="text-[10px] text-muted-foreground font-semibold">Low → Peak</span>
+            <span className="text-[10px] text-muted-foreground font-semibold">{getTranslation(language, 'lowToPeak')}</span>
           </div>
 
           {/* User Help tip */}

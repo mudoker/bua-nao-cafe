@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { AccountSession, Participant, EventDetails, AvailabilityMap, Recommendation } from '../types';
-import { generateSlots } from '../utils/time';
+import { generateSlots, parseLocalDate } from '../utils/time';
 import { Language } from '../utils/translations';
-import { EventState } from './useEventStore.types';
+import { EventState, FilterState } from './useEventStore.types';
 
 const getStoredAccount = (): AccountSession | null => {
   if (typeof window === 'undefined') return null;
@@ -37,9 +37,12 @@ export const useEventStore = create<EventState>((set, get) => {
   const computeRecommendations = (
     event: EventDetails,
     participants: Participant[],
-    availability: AvailabilityMap
+    availability: AvailabilityMap,
+    filters: FilterState
   ): Recommendation[] => {
-    const completedParticipants = participants.filter(p => p.isCompleted);
+    const completedParticipants = filters.selectedParticipantIds.length > 0
+      ? participants.filter((p) => filters.selectedParticipantIds.includes(p.id))
+      : participants.filter(p => p.isCompleted);
     if (completedParticipants.length === 0) return [];
 
     const totalCount = completedParticipants.length;
@@ -48,7 +51,19 @@ export const useEventStore = create<EventState>((set, get) => {
       event.visibleHoursStart,
       event.visibleHoursEnd,
       event.slotDuration
-    );
+    ).filter((slotId) => {
+      const datePart = slotId.split('T')[0];
+      const timePart = slotId.split('T')[1];
+      const hour = Number(timePart?.split(':')[0] || 0);
+      const day = parseLocalDate(datePart).getDay();
+      const isWeekend = day === 0 || day === 6;
+      const preferredStart = event.preferredWorkingHoursStart ?? event.visibleHoursStart;
+      const preferredEnd = event.preferredWorkingHoursEnd ?? event.visibleHoursEnd;
+
+      if (filters.hideWeekend && isWeekend) return false;
+      if (filters.workingHoursOnly && (hour < preferredStart || hour >= preferredEnd)) return false;
+      return true;
+    });
 
     const recommendations: Recommendation[] = [];
 
@@ -62,6 +77,7 @@ export const useEventStore = create<EventState>((set, get) => {
 
       const percentage = (overlapCount / totalCount) * 100;
       if (overlapCount === 0) return;
+      if (percentage < filters.minOverlapPercentage) return;
 
       const dateTime = new Date(slotId);
       const hour = dateTime.getHours();
@@ -696,9 +712,9 @@ export const useEventStore = create<EventState>((set, get) => {
     },
 
     getRecommendations: () => {
-      const { currentEvent, participants, availability } = get();
+      const { currentEvent, participants, availability, filters } = get();
       if (!currentEvent) return [];
-      return computeRecommendations(currentEvent, participants, availability);
+      return computeRecommendations(currentEvent, participants, availability, filters);
     },
   };
 });
