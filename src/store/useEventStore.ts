@@ -18,19 +18,52 @@ const getStoredAccount = (): AccountSession | null => {
 
 const normalizeAccountName = (name: string) => name.trim().toLowerCase();
 
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingState: {
+  currentEvent: EventDetails | null;
+  participants: Participant[];
+  availability: AvailabilityMap;
+} | null = null;
+
 const syncState = (state: {
   currentEvent: EventDetails | null;
   participants: Participant[];
   availability: AvailabilityMap;
 }) => {
-  const { currentEvent, participants, availability } = state;
-  if (!currentEvent) return;
-  fetch(`/api/events/${currentEvent.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currentEvent, participants, availability }),
-  }).catch(err => console.error('Failed to sync state:', err));
+  pendingState = state;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  debounceTimer = setTimeout(() => {
+    if (!pendingState) return;
+    const { currentEvent, participants, availability } = pendingState;
+    if (!currentEvent) return;
+    fetch(`/api/events/${currentEvent.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentEvent, participants, availability }),
+    }).catch(err => console.error('Failed to sync state:', err));
+    debounceTimer = null;
+    pendingState = null;
+  }, 800); // 800ms debounce
 };
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (debounceTimer && pendingState) {
+      clearTimeout(debounceTimer);
+      const { currentEvent, participants, availability } = pendingState;
+      if (currentEvent) {
+        fetch(`/api/events/${currentEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentEvent, participants, availability }),
+          keepalive: true,
+        }).catch(err => console.error('Failed to sync state on unload:', err));
+      }
+    }
+  });
+}
 
 export const useEventStore = create<EventState>((set, get) => {
   // Helper to generate recommendations
@@ -385,7 +418,7 @@ export const useEventStore = create<EventState>((set, get) => {
       return newParticipant;
     },
 
-    submitAvailability: (slots) => {
+    submitAvailability: (slots, skipHistory = false) => {
       const { currentEvent, currentUser, participants, availability, undoStack } = get();
       if (!currentEvent || !currentUser) return;
 
@@ -399,11 +432,14 @@ export const useEventStore = create<EventState>((set, get) => {
       };
 
       // Push history
-      const lastHistory = undoStack[undoStack.length - 1];
-      const newUndoStack = [...undoStack];
-      // Only push to history if it actually changed
-      if (JSON.stringify(lastHistory) !== JSON.stringify(slots)) {
-        newUndoStack.push(slots);
+      let newUndoStack = undoStack;
+      if (!skipHistory) {
+        const lastHistory = undoStack[undoStack.length - 1];
+        newUndoStack = [...undoStack];
+        // Only push to history if it actually changed
+        if (JSON.stringify(lastHistory) !== JSON.stringify(slots)) {
+          newUndoStack.push(slots);
+        }
       }
 
       set({
@@ -411,7 +447,7 @@ export const useEventStore = create<EventState>((set, get) => {
         availability: updatedAvailability,
         currentUser: { ...currentUser, isCompleted: true },
         undoStack: newUndoStack,
-        redoStack: [], // clear redo on new action
+        redoStack: skipHistory ? get().redoStack : [], // clear redo on new action only if we are not skipping history
       });
 
       const stateToSave = {
@@ -422,15 +458,17 @@ export const useEventStore = create<EventState>((set, get) => {
       };
       syncState(stateToSave);
 
-      const wasCompleted = currentUser.isCompleted;
-      if (!wasCompleted) {
-        get().addActivity(`${currentUser.name} submitted availability! 🎉`);
-      } else {
-        get().addActivity(`${currentUser.name} updated availability.`);
+      if (!skipHistory) {
+        const wasCompleted = currentUser.isCompleted;
+        if (!wasCompleted) {
+          get().addActivity(`${currentUser.name} submitted availability! 🎉`);
+        } else {
+          get().addActivity(`${currentUser.name} updated availability.`);
+        }
       }
     },
 
-    toggleSlotAvailability: (slotId) => {
+    toggleSlotAvailability: (slotId, skipHistory = false) => {
       const { currentUser, availability } = get();
       if (!currentUser) return;
 
@@ -439,10 +477,10 @@ export const useEventStore = create<EventState>((set, get) => {
         ? currentSlots.filter((id) => id !== slotId)
         : [...currentSlots, slotId];
 
-      get().submitAvailability(updatedSlots);
+      get().submitAvailability(updatedSlots, skipHistory);
     },
 
-    paintSlotsAvailability: (slotIds, available) => {
+    paintSlotsAvailability: (slotIds, available, skipHistory = false) => {
       const { currentUser, availability } = get();
       if (!currentUser) return;
 
@@ -461,7 +499,7 @@ export const useEventStore = create<EventState>((set, get) => {
         updatedSlots = updatedSlots.filter((id) => !slotIds.includes(id));
       }
 
-      get().submitAvailability(updatedSlots);
+      get().submitAvailability(updatedSlots, skipHistory);
     },
 
     undo: () => {
