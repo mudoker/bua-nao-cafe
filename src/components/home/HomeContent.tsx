@@ -49,10 +49,17 @@ export default function HomeContent() {
         if (!res.ok) return;
         const data = await res.json();
         const store = useEventStore.getState();
+        const currentUserId = store.currentUser?.id;
+
+        // Merge incoming availability with local user's availability to avoid overwrite glitches
+        const mergedAvailability = {
+          ...data.availability,
+          ...(currentUserId ? { [currentUserId]: store.availability[currentUserId] || [] } : {})
+        };
 
         if (
           JSON.stringify(store.participants) !== JSON.stringify(data.participants) ||
-          JSON.stringify(store.availability) !== JSON.stringify(data.availability) ||
+          JSON.stringify(store.availability) !== JSON.stringify(mergedAvailability) ||
           JSON.stringify(store.currentEvent) !== JSON.stringify(data.currentEvent)
         ) {
           const updatedCurrentUser = store.currentUser
@@ -62,7 +69,7 @@ export default function HomeContent() {
           useEventStore.setState({
             currentEvent: data.currentEvent,
             participants: data.participants,
-            availability: data.availability,
+            availability: mergedAvailability,
             currentUser: updatedCurrentUser,
           });
         }
