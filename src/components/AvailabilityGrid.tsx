@@ -734,9 +734,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                             render={
                               <td
                                 data-slot-id={slotId}
-                                className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold transition-all sm:h-16 ${cellBg} ${
+                                className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold sm:h-16 ${cellBg} ${
                                   idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                                } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'}`}
+                                } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'} ${
+                                  (isMouseDown || isTouchDragging) ? '' : 'transition-all duration-100'
+                                }`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
                                 onMouseEnter={() => handleMouseEnterCell(slotId)}
                                 onDoubleClick={() => handleCellDoubleClick(slotId)}
