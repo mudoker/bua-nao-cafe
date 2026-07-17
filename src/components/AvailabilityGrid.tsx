@@ -22,14 +22,84 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const paintSlotsAvailability = useEventStore((state) => state.paintSlotsAvailability);
   const toggleSlotAvailability = useEventStore((state) => state.toggleSlotAvailability);
   const finalizeSlot = useEventStore((state) => state.finalizeSlot);
+  const submitAvailability = useEventStore((state) => state.submitAvailability);
 
   // Local grid interaction state
   const [isMouseDown, setIsMouseDown] = useState(false);
+  const isMouseDownRef = useRef(false);
   const [paintMode, setPaintMode] = useState<'add' | 'remove' | null>(null);
   const [paintedSlots, setPaintedSlots] = useState<string[]>([]);
   const [touchMode, setTouchMode] = useState<'paint' | 'scroll'>('scroll');
   const [activeMobileDateIndex, setActiveMobileDateIndex] = useState(0);
   const [longPressedSlot, setLongPressedSlot] = useState<string | null>(null);
+  
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
+  const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
+  const [dragTooltipSlot, setDragTooltipSlot] = useState<string | null>(null);
+
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const isTouchDraggingRef = useRef(false);
+  const touchDragModeRef = useRef<'add' | 'remove' | null>(null);
+  const touchPaintedSlotsRef = useRef<string[]>([]);
+
+  const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const autoScrollTimerRef = useRef<number | null>(null);
+
+  const runAutoScroll = () => {
+    const isDragging = isMouseDownRef.current || isTouchDraggingRef.current;
+    if (!isDragging) {
+      autoScrollTimerRef.current = null;
+      return;
+    }
+
+    const container = gridContainerRef.current;
+    const pointer = dragPointerRef.current;
+
+    if (container && pointer) {
+      const rect = container.getBoundingClientRect();
+      const { x, y } = pointer;
+
+      const edgeThresholdX = 60; // px
+      const maxScrollSpeedX = 16;
+
+      const edgeThresholdY = 70; // px
+      const maxScrollSpeedY = 16;
+
+      let scrollX = 0;
+      let scrollY = 0;
+
+      // Horizontal auto scroll the container
+      if (rect.right - x < edgeThresholdX) {
+        const dist = Math.max(0, rect.right - x);
+        const intensity = (edgeThresholdX - dist) / edgeThresholdX;
+        scrollX = intensity * maxScrollSpeedX;
+      } else if (x - rect.left < edgeThresholdX) {
+        const dist = Math.max(0, x - rect.left);
+        const intensity = (edgeThresholdX - dist) / edgeThresholdX;
+        scrollX = -intensity * maxScrollSpeedX;
+      }
+
+      // Vertical auto scroll the entire window
+      const viewportHeight = window.innerHeight;
+      if (y < edgeThresholdY) {
+        const intensity = (edgeThresholdY - y) / edgeThresholdY;
+        scrollY = -intensity * maxScrollSpeedY;
+      } else if (viewportHeight - y < edgeThresholdY) {
+        const intensity = (edgeThresholdY - (viewportHeight - y)) / edgeThresholdY;
+        scrollY = intensity * maxScrollSpeedY;
+      }
+
+      if (scrollX !== 0) {
+        container.scrollLeft += scrollX;
+      }
+      if (scrollY !== 0) {
+        window.scrollBy(0, scrollY);
+      }
+    }
+
+    autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
+  };
+
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tooltipCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTouchTimeRef = useRef(0);
@@ -120,36 +190,59 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     if (e.button !== 0) return;
 
     setIsMouseDown(true);
+    isMouseDownRef.current = true;
     const isAvailable = availability[currentUser.id]?.includes(slotId) || false;
     const mode: 'add' | 'remove' = isAvailable ? 'remove' : 'add';
 
     setPaintMode(mode);
     setPaintedSlots([slotId]);
 
-    toggleSlotAvailability(slotId);
+    // Skip history on mouse down, commit on mouse up
+    toggleSlotAvailability(slotId, true);
+
+    // Start auto scroll
+    dragPointerRef.current = { x: e.clientX, y: e.clientY };
+    if (!autoScrollTimerRef.current) {
+      autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
+    }
   };
 
   const handleMouseEnterCell = (slotId: string) => {
     if (!isMouseDown || !paintMode || !currentUser) return;
 
     if (!paintedSlots.includes(slotId)) {
-      setPaintedSlots([...paintedSlots, slotId]);
+      setPaintedSlots(prev => [...prev, slotId]);
       
       const currentSlots = availability[currentUser.id] || [];
       const hasSlot = currentSlots.includes(slotId);
       
       if (paintMode === 'add' && !hasSlot) {
-        toggleSlotAvailability(slotId);
+        toggleSlotAvailability(slotId, true);
       } else if (paintMode === 'remove' && hasSlot) {
-        toggleSlotAvailability(slotId);
+        toggleSlotAvailability(slotId, true);
       }
     }
   };
 
   const handleGlobalMouseUp = () => {
-    setIsMouseDown(false);
+    setIsMouseDown(prev => {
+      if (prev && currentUser) {
+        // Commit final state to undo stack and sync
+        const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
+        submitAvailability(currentSlots, false);
+      }
+      return false;
+    });
+    isMouseDownRef.current = false;
     setPaintMode(null);
     setPaintedSlots([]);
+
+    // Stop auto scroll
+    if (autoScrollTimerRef.current) {
+      cancelAnimationFrame(autoScrollTimerRef.current);
+      autoScrollTimerRef.current = null;
+    }
+    dragPointerRef.current = null;
   };
 
   const clearLongPressTimer = () => {
@@ -175,77 +268,206 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
 
   useEffect(() => {
     window.addEventListener('mouseup', handleGlobalMouseUp);
+
+    // Hide tooltip when tapped outside or when changing mode
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.heatmap-cell') && !target.closest('button')) {
+        setLongPressedSlot(null);
+      }
+    };
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isMouseDownRef.current) {
+        dragPointerRef.current = { x: e.clientX, y: e.clientY };
+        if (!autoScrollTimerRef.current) {
+          autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
+        }
+      }
+    };
+
+    document.addEventListener('click', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+
     return () => {
       window.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
       clearLongPressTimer();
       clearTooltipCloseTimer();
-    };
-  }, []);
-
-  // Touch handlers
-  const handleCellTouchMove = (e: React.TouchEvent) => {
-    clearLongPressTimer();
-    const start = touchStartRef.current;
-    const touch = e.touches[0];
-    if (!start || !touch) return;
-
-    const moved = Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10;
-    if (moved) {
-      start.moved = true;
-      setLongPressedSlot(null);
-    }
-  };
-
-  const handleCellTouchStart = (slotId: string, e: React.TouchEvent) => {
-    clearLongPressTimer();
-    clearTooltipCloseTimer();
-    const touch = e.touches[0];
-    if (!touch) return;
-    lastTouchTimeRef.current = Date.now();
-
-    if (touchMode === 'paint') e.preventDefault();
-
-    setLongPressedSlot(null);
-    touchStartRef.current = {
-      slotId,
-      x: touch.clientX,
-      y: touch.clientY,
-      moved: false,
-      longPressTriggered: false,
-    };
-
-    longPressTimerRef.current = setTimeout(() => {
-      if (touchStartRef.current?.slotId === slotId && !touchStartRef.current.moved) {
-        touchStartRef.current.longPressTriggered = true;
-        setLongPressedSlot(slotId);
+      if (autoScrollTimerRef.current) {
+        cancelAnimationFrame(autoScrollTimerRef.current);
       }
-    }, 500);
-  };
+    };
+  }, [currentUser]);
 
-  const handleCellTouchEnd = () => {
-    const start = touchStartRef.current;
-    clearLongPressTimer();
-    touchStartRef.current = null;
+  // Touch handlers registered directly on the container DOM element to support { passive: false } preventDefault dragging
+  useEffect(() => {
+    const container = gridContainerRef.current;
+    if (!container) return;
 
-    if (!start || start.moved) {
-      closeLongPressTooltipSoon();
-      return;
-    }
+    const onTouchStart = (e: TouchEvent) => {
+      if (!currentUser) return;
 
-    if (start.longPressTriggered) {
-      closeLongPressTooltipSoon();
-      return;
-    }
+      const target = e.target as HTMLElement;
+      const cell = target.closest('.heatmap-cell');
+      if (!cell) return;
 
-    if (touchMode === 'paint' && currentUser) {
-      toggleSlotAvailability(start.slotId);
+      const slotId = cell.getAttribute('data-slot-id');
+      if (!slotId) return;
+
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      lastTouchTimeRef.current = Date.now();
       setLongPressedSlot(null);
-      return;
-    }
+      setDragTooltipSlot(null);
 
-    setLongPressedSlot(start.slotId);
-    closeLongPressTooltipSoon();
-  };
+      touchStartRef.current = {
+        slotId,
+        x: touch.clientX,
+        y: touch.clientY,
+        moved: false,
+        longPressTriggered: false,
+      };
+
+      clearLongPressTimer();
+      longPressTimerRef.current = setTimeout(() => {
+        const start = touchStartRef.current;
+        if (start && start.slotId === slotId && !start.moved) {
+          start.longPressTriggered = true;
+
+          if (touchMode === 'paint') {
+            // Enable touch dragging!
+            isTouchDraggingRef.current = true;
+            setIsTouchDragging(true);
+            setDragStartSlot(slotId);
+            setDragTooltipSlot(slotId);
+
+            // Determine paint mode based on initial state of starting cell
+            const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
+            const isAvailable = currentSlots.includes(slotId);
+            const mode = isAvailable ? 'remove' : 'add';
+            touchDragModeRef.current = mode;
+            touchPaintedSlotsRef.current = [slotId];
+
+            // Paint the starting slot immediately
+            toggleSlotAvailability(slotId, true);
+
+            // Start auto scroll
+            dragPointerRef.current = { x: touch.clientX, y: touch.clientY };
+            if (!autoScrollTimerRef.current) {
+              autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
+            }
+
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate(60);
+            }
+          } else {
+            // View mode long press: open details tooltip
+            setLongPressedSlot(slotId);
+          }
+        }
+      }, 500);
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      const start = touchStartRef.current;
+      if (!start) return;
+
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const moved = Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 10;
+      if (moved) {
+        start.moved = true;
+        if (!isTouchDraggingRef.current) {
+          clearLongPressTimer();
+        }
+      }
+
+      if (isTouchDraggingRef.current) {
+        // Prevent screen scrolling while drag-painting
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+
+        // Update pointer position for auto scroll
+        dragPointerRef.current = { x: touch.clientX, y: touch.clientY };
+        if (!autoScrollTimerRef.current) {
+          autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
+        }
+
+        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+        const cell = element?.closest('.heatmap-cell');
+        const slotId = cell?.getAttribute('data-slot-id');
+
+        if (slotId && !touchPaintedSlotsRef.current.includes(slotId)) {
+          touchPaintedSlotsRef.current.push(slotId);
+
+          const isAdd = touchDragModeRef.current === 'add';
+          paintSlotsAvailability([slotId], isAdd, true);
+        }
+      }
+    };
+
+    const onTouchEnd = () => {
+      const start = touchStartRef.current;
+      clearLongPressTimer();
+      touchStartRef.current = null;
+
+      // Stop auto scroll
+      if (autoScrollTimerRef.current) {
+        cancelAnimationFrame(autoScrollTimerRef.current);
+        autoScrollTimerRef.current = null;
+      }
+      dragPointerRef.current = null;
+
+      if (isTouchDraggingRef.current) {
+        isTouchDraggingRef.current = false;
+        setIsTouchDragging(false);
+        setDragTooltipSlot(null);
+        setDragStartSlot(null);
+
+        // Commit final state
+        if (currentUser) {
+          const finalSlots = useEventStore.getState().availability[currentUser.id] || [];
+          submitAvailability(finalSlots, false);
+        }
+        return;
+      }
+
+      if (!start || start.moved || start.longPressTriggered) {
+        closeLongPressTooltipSoon();
+        return;
+      }
+
+      // Tap in edit mode: toggles immediately and commits
+      if (touchMode === 'paint' && currentUser) {
+        toggleSlotAvailability(start.slotId, false);
+        setLongPressedSlot(null);
+        return;
+      }
+
+      // Tap in view mode: open details tooltip
+      setLongPressedSlot(start.slotId);
+      closeLongPressTooltipSoon();
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [currentUser, touchMode, paintSlotsAvailability, toggleSlotAvailability, submitAvailability]);
 
   // Quick Action: Fill/Clear whole day
   const handleDayAction = (dateStr: string, action: 'select' | 'clear') => {
@@ -417,8 +639,23 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           </div>
         )}
 
+        {/* Mobile Drag Mode Banner */}
+        {isTouchDragging && (
+          <div className="flex sm:hidden items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-xl text-primary animate-pulse">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            <span className="text-[10px] font-bold">
+              {language === 'en' 
+                ? 'Drag mode active! Swipe to select/deselect slots.' 
+                : 'Đang bật chế độ kéo! Vuốt để chọn hoặc xóa nhanh các ô.'}
+            </span>
+          </div>
+        )}
+
         {/* Main Grid View */}
-        <div className="overflow-x-auto border border-border rounded-xl relative bg-card">
+        <div ref={gridContainerRef} className="overflow-x-auto border border-border rounded-xl relative bg-card">
           <table
             className="w-full min-h-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
@@ -490,8 +727,9 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
                       const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
+                      const isTooltipOpen = dragTooltipSlot === slotId ? true : (longPressedSlot === slotId ? true : undefined);
                       return (
-                        <Tooltip key={slotId} open={longPressedSlot ? longPressedSlot === slotId : undefined}>
+                        <Tooltip key={slotId} open={isTooltipOpen}>
                           <TooltipTrigger
                             render={
                               <td
@@ -501,10 +739,6 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                                 } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'}`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
                                 onMouseEnter={() => handleMouseEnterCell(slotId)}
-                                onTouchStart={(e) => handleCellTouchStart(slotId, e)}
-                                onTouchMove={handleCellTouchMove}
-                                onTouchEnd={handleCellTouchEnd}
-                                onTouchCancel={handleCellTouchEnd}
                                 onDoubleClick={() => handleCellDoubleClick(slotId)}
                               >
                                 {isFinalized && (
@@ -516,11 +750,16 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                             }
                           />
                           <TooltipContent
-                            side="right"
+                            side={dragTooltipSlot === slotId ? "top" : "right"}
                             sideOffset={8}
                             className="p-0 border-0 bg-transparent shadow-none max-w-[220px] pointer-events-none"
                           >
-                            <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
+                            {dragTooltipSlot === slotId ? (
+                              <div className="bg-primary text-primary-foreground font-bold p-2.5 rounded-xl shadow-2xl text-xs text-center animate-bounce border border-primary-foreground/20">
+                                👆 {language === 'en' ? 'Drag finger to paint/erase!' : 'Kéo ngón tay để tô/xóa!'}
+                              </div>
+                            ) : (
+                              <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
                               <div className="font-bold border-b border-border/80 pb-1.5 mb-2 text-foreground flex items-center gap-1">
                                 <span>{formatSlotDate(slotId, language)}</span>
                                 <span className="text-muted-foreground">@</span>
@@ -577,6 +816,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                                 </div>
                               )}
                             </div>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       );
