@@ -32,9 +32,9 @@ export interface EventState {
   loadEvent: (eventId: string) => Promise<void>;
   resetEvent: () => void;
   joinAsParticipant: (name: string, color: string, avatar: string, password?: string, isHost?: boolean) => Participant;
-  submitAvailability: (slots: string[]) => void;
-  toggleSlotAvailability: (slotId: string) => void;
-  paintSlotsAvailability: (slotIds: string[], available: boolean) => void;
+  submitAvailability: (slots: string[], skipHistory?: boolean) => void;
+  toggleSlotAvailability: (slotId: string, skipHistory?: boolean) => void;
+  paintSlotsAvailability: (slotIds: string[], available: boolean, skipHistory?: boolean) => void;
   undo: () => void;
   redo: () => void;
   clearCurrentAvailability: () => void;
