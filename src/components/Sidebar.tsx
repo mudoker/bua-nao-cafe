@@ -209,23 +209,7 @@ export default function Sidebar({ className }: { className?: string }) {
                         </div>
                       )}
 
-                      {/* Self edit panel */}
-                      {isMe && (
-                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
-                          <ProfileEditDialog
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                                title={language === 'en' ? 'Edit profile' : 'Sửa tài khoản'}
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </Button>
-                            }
-                          />
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 );
