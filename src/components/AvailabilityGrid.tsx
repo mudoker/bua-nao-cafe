@@ -42,6 +42,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const isTouchDraggingRef = useRef(false);
   const touchDragModeRef = useRef<'add' | 'remove' | null>(null);
   const touchPaintedSlotsRef = useRef<string[]>([]);
+  const dragPathRef = useRef<string[]>([]);
+  const initialAvailabilityRef = useRef<string[]>([]);
 
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const autoScrollTimerRef = useRef<number | null>(null);
@@ -198,6 +200,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     setPaintMode(mode);
     setPaintedSlots([slotId]);
 
+    // Initialize drag path & initial availability
+    dragPathRef.current = [slotId];
+    initialAvailabilityRef.current = [...(availability[currentUser.id] || [])];
+
     // Close tooltips immediately on press
     setLongPressedSlot(null);
     setHoveredSlot(null);
@@ -216,17 +222,33 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const handleMouseEnterCell = (slotId: string) => {
     if (!isMouseDown || !paintMode || !currentUser) return;
 
-    if (!paintedSlots.includes(slotId)) {
-      setPaintedSlots(prev => [...prev, slotId]);
+    const path = dragPathRef.current;
+    if (path.length > 1 && path[path.length - 2] === slotId) {
+      // User is dragging backwards!
+      const poppedSlotId = path.pop();
+      setPaintedSlots(prev => prev.filter(id => id !== poppedSlotId));
+
+      // Revert availability of popped slot to initial state
+      const wasInitiallyAvailable = initialAvailabilityRef.current.includes(poppedSlotId || '');
+      const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
       
-      const currentSlots = availability[currentUser.id] || [];
-      const hasSlot = currentSlots.includes(slotId);
-      
-      if (paintMode === 'add' && !hasSlot) {
-        toggleSlotAvailability(slotId, true);
-      } else if (paintMode === 'remove' && hasSlot) {
-        toggleSlotAvailability(slotId, true);
+      let updatedSlots = [...currentSlots];
+      if (wasInitiallyAvailable) {
+        if (!updatedSlots.includes(poppedSlotId || '')) {
+          updatedSlots.push(poppedSlotId || '');
+        }
+      } else {
+        updatedSlots = updatedSlots.filter(id => id !== poppedSlotId);
       }
+      
+      submitAvailability(updatedSlots, true);
+    } else if (!path.includes(slotId)) {
+      // Moving to a new slot
+      path.push(slotId);
+      setPaintedSlots(prev => [...prev, slotId]);
+
+      const isAdd = paintMode === 'add';
+      paintSlotsAvailability([slotId], isAdd, true);
     }
   };
 
@@ -363,6 +385,10 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
             touchDragModeRef.current = mode;
             touchPaintedSlotsRef.current = [slotId];
 
+            // Initialize drag path & initial availability
+            dragPathRef.current = [slotId];
+            initialAvailabilityRef.current = [...currentSlots];
+
             // Paint the starting slot immediately
             toggleSlotAvailability(slotId, true);
 
@@ -398,7 +424,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         }
       }
 
-      if (isTouchDraggingRef.current) {
+      if (isTouchDraggingRef.current && currentUser) {
         // Prevent screen scrolling while drag-painting
         if (e.cancelable) {
           e.preventDefault();
@@ -414,11 +440,33 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         const cell = element?.closest('.heatmap-cell');
         const slotId = cell?.getAttribute('data-slot-id');
 
-        if (slotId && !touchPaintedSlotsRef.current.includes(slotId)) {
-          touchPaintedSlotsRef.current.push(slotId);
+        if (slotId) {
+          const path = dragPathRef.current;
+          if (path.length > 1 && path[path.length - 2] === slotId) {
+            // User is dragging backwards!
+            const poppedSlotId = path.pop();
 
-          const isAdd = touchDragModeRef.current === 'add';
-          paintSlotsAvailability([slotId], isAdd, true);
+            // Revert availability of popped slot to initial state
+            const wasInitiallyAvailable = initialAvailabilityRef.current.includes(poppedSlotId || '');
+            const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
+
+            let updatedSlots = [...currentSlots];
+            if (wasInitiallyAvailable) {
+              if (!updatedSlots.includes(poppedSlotId || '')) {
+                updatedSlots.push(poppedSlotId || '');
+              }
+            } else {
+              updatedSlots = updatedSlots.filter(id => id !== poppedSlotId);
+            }
+
+            submitAvailability(updatedSlots, true);
+          } else if (!path.includes(slotId)) {
+            // Moving forward to a new cell
+            path.push(slotId);
+
+            const isAdd = touchDragModeRef.current === 'add';
+            paintSlotsAvailability([slotId], isAdd, true);
+          }
         }
       }
     };
@@ -738,39 +786,44 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
                       const isTooltipOpen = dragTooltipSlot === slotId || longPressedSlot === slotId || hoveredSlot === slotId;
-                      return (
-                        <Tooltip key={slotId} open={isTooltipOpen}>
-                          <TooltipTrigger
-                            render={
-                              <td
-                                data-slot-id={slotId}
-                                className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold sm:h-16 ${cellBg} ${
-                                  idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
-                                } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'} ${
-                                  (isMouseDown || isTouchDragging) ? '' : 'transition-all duration-100'
-                                }`}
-                                onMouseDown={(e) => handleMouseDown(slotId, e)}
-                                onMouseEnter={() => {
-                                  if (currentUser) {
-                                    handleMouseEnterCell(slotId);
-                                  }
-                                  if (Date.now() - lastTouchTimeRef.current > 700) {
-                                    setHoveredSlot(slotId);
-                                  }
-                                }}
-                                onMouseLeave={() => {
-                                  setHoveredSlot(null);
-                                }}
-                                onDoubleClick={() => handleCellDoubleClick(slotId)}
-                              >
-                                {isFinalized && (
-                                  <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
-                                    👑
-                                  </div>
-                                )}
-                              </td>
+
+                      const cellEl = (
+                        <td
+                          data-slot-id={slotId}
+                          className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold sm:h-16 ${cellBg} ${
+                            idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
+                          } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'} ${
+                            (isMouseDown || isTouchDragging) ? '' : 'transition-all duration-100'
+                          }`}
+                          onMouseDown={(e) => handleMouseDown(slotId, e)}
+                          onMouseEnter={() => {
+                            if (currentUser) {
+                              handleMouseEnterCell(slotId);
                             }
-                          />
+                            if (Date.now() - lastTouchTimeRef.current > 700) {
+                              setHoveredSlot(slotId);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            setHoveredSlot(null);
+                          }}
+                          onDoubleClick={() => handleCellDoubleClick(slotId)}
+                        >
+                          {isFinalized && (
+                            <div className="absolute inset-0 flex items-center justify-center text-xs animate-bounce" title="Finalized!">
+                              👑
+                            </div>
+                          )}
+                        </td>
+                      );
+
+                      if (!isTooltipOpen) {
+                        return <React.Fragment key={slotId}>{cellEl}</React.Fragment>;
+                      }
+
+                      return (
+                        <Tooltip key={slotId} open={true}>
+                          <TooltipTrigger render={cellEl} />
                           <TooltipContent
                             side={dragTooltipSlot === slotId ? "top" : "right"}
                             sideOffset={8}
@@ -782,62 +835,62 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                               </div>
                             ) : (
                               <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
-                              <div className="font-bold border-b border-border/80 pb-1.5 mb-2 text-foreground flex items-center gap-1">
-                                <span>{formatSlotDate(slotId, language)}</span>
-                                <span className="text-muted-foreground">@</span>
-                                <span>{formatSlotTime(slotId)}</span>
-                              </div>
-
-                              {isFinalized && (
-                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
-                                  <Award className="w-3.5 h-3.5" />
-                                  <span>{getTranslation(language, 'finalized')}</span>
+                                <div className="font-bold border-b border-border/80 pb-1.5 mb-2 text-foreground flex items-center gap-1">
+                                  <span>{formatSlotDate(slotId, language)}</span>
+                                  <span className="text-muted-foreground">@</span>
+                                  <span>{formatSlotTime(slotId)}</span>
                                 </div>
-                              )}
 
-                              <div className="flex items-center gap-1.5 mb-2 font-bold">
-                                <span className="text-primary">
-                                  {overlapCount} / {totalCount} {getTranslation(language, 'available')}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
-                              </div>
+                                {isFinalized && (
+                                  <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-500 font-bold text-[9px] mb-2 border border-violet-500/20">
+                                    <Award className="w-3.5 h-3.5" />
+                                    <span>{getTranslation(language, 'finalized')}</span>
+                                  </div>
+                                )}
 
-                              {currentUser && (
-                                <div className="mb-2 text-[10px] font-bold">
-                                  <span className="text-black dark:text-white">{getTranslation(language, 'yourAvailability')}: </span>
-                                  <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
-                                    {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                                <div className="flex items-center gap-1.5 mb-2 font-bold">
+                                  <span className="text-primary">
+                                    {overlapCount} / {totalCount} {getTranslation(language, 'available')}
                                   </span>
+                                  <span className="text-[10px] text-muted-foreground">({Math.round(percentage)}%)</span>
                                 </div>
-                              )}
 
-                              {availableUsers.length > 0 && (
-                                <div className="space-y-1">
-                                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {availableUsers.map((u) => (
-                                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
-                                        <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
-                                        <span>{u.name}</span>
-                                      </span>
-                                    ))}
+                                {currentUser && (
+                                  <div className="mb-2 text-[10px] font-bold">
+                                    <span className="text-black dark:text-white">{getTranslation(language, 'yourAvailability')}: </span>
+                                    <span className={isMeAvailable ? 'text-emerald-500' : 'text-muted-foreground'}>
+                                      {isMeAvailable ? getTranslation(language, 'yes') : getTranslation(language, 'no')}
+                                    </span>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
-                              {unavailableUsers.length > 0 && (
-                                <div className="space-y-1 mt-2">
-                                  <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {unavailableUsers.map((u) => (
-                                      <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
-                                        <span>{u.name}</span>
-                                      </span>
-                                    ))}
+                                {availableUsers.length > 0 && (
+                                  <div className="space-y-1">
+                                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'available')}</div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {availableUsers.map((u) => (
+                                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted text-[10px] font-bold text-foreground border border-border/40">
+                                          <span className={`w-1.5 h-1.5 rounded-full ${getDotColorClass(u.color)}`} />
+                                          <span>{u.name}</span>
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
+                                )}
+
+                                {unavailableUsers.length > 0 && (
+                                  <div className="space-y-1 mt-2">
+                                    <div className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">{getTranslation(language, 'unavailable')}</div>
+                                    <div className="flex flex-wrap gap-1">
+                                      {unavailableUsers.map((u) => (
+                                        <span key={u.id} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-lg bg-muted/40 text-[10px] font-semibold text-muted-foreground">
+                                          <span>{u.name}</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </TooltipContent>
                         </Tooltip>
