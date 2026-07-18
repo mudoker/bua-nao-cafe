@@ -101,7 +101,7 @@ export const translations = {
     unavailable: 'Unavailable',
     yourAvailability: 'Your Free Time',
     gridHelpText: 'Click and drag to color. Double-click finalized slot.',
-    gridHelpTextMobile: 'View: tap a cell for details. Edit: tap to select or deselect; long-press for details.',
+    gridHelpTextMobile: 'View: tap a cell for details. Edit: tap to toggle; double-tap & drag to select/deselect multiple slots.',
     yes: 'Yes',
     no: 'No',
 
@@ -231,7 +231,7 @@ export const translations = {
     unavailable: 'Bận',
     yourAvailability: 'Lịch Rảnh Của Bạn',
     gridHelpText: 'Nhấn và rê chuột để tô. Click đúp ô để chốt lịch.',
-    gridHelpTextMobile: 'Xem: chạm vào ô để xem chi tiết. Sửa: chạm để chọn hoặc bỏ chọn; nhấn giữ để xem chi tiết.',
+    gridHelpTextMobile: 'Xem: chạm ô để xem chi tiết. Sửa: chạm để chọn; chạm đúp & kéo để tô/xóa nhanh.',
     yes: 'Có',
     no: 'Không',
 

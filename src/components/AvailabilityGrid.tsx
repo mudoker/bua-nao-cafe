@@ -44,6 +44,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const touchPaintedSlotsRef = useRef<string[]>([]);
   const dragPathRef = useRef<string[]>([]);
   const initialAvailabilityRef = useRef<string[]>([]);
+  const lastTapRef = useRef<{ slotId: string; time: number } | null>(null);
 
   const dragPointerRef = useRef<{ x: number; y: number } | null>(null);
   const autoScrollTimerRef = useRef<number | null>(null);
@@ -365,48 +366,56 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         longPressTriggered: false,
       };
 
-      clearLongPressTimer();
-      longPressTimerRef.current = setTimeout(() => {
-        const start = touchStartRef.current;
-        if (start && start.slotId === slotId && !start.moved) {
-          start.longPressTriggered = true;
+      const now = Date.now();
+      const lastTap = lastTapRef.current;
+      const isDoubleTap = lastTap && lastTap.slotId === slotId && (now - lastTap.time < 350);
+      lastTapRef.current = { slotId, time: now };
 
-          if (touchMode === 'paint') {
-            // Enable touch dragging!
-            isTouchDraggingRef.current = true;
-            setIsTouchDragging(true);
-            setDragStartSlot(slotId);
-            setDragTooltipSlot(slotId);
+      if (isDoubleTap && touchMode === 'paint') {
+        // Double tap triggers drag mode on mobile paint!
+        isTouchDraggingRef.current = true;
+        setIsTouchDragging(true);
+        setDragStartSlot(slotId);
+        setDragTooltipSlot(slotId);
 
-            // Determine paint mode based on initial state of starting cell
-            const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
-            const isAvailable = currentSlots.includes(slotId);
-            const mode = isAvailable ? 'remove' : 'add';
-            touchDragModeRef.current = mode;
-            touchPaintedSlotsRef.current = [slotId];
+        // Determine paint mode (opposite of state BEFORE Tap 1)
+        // Since Tap 1 already toggled it, the current state matches the toggle direction
+        const currentSlots = useEventStore.getState().availability[currentUser.id] || [];
+        const isAvailable = currentSlots.includes(slotId);
+        const mode = isAvailable ? 'add' : 'remove';
+        touchDragModeRef.current = mode;
+        touchPaintedSlotsRef.current = [slotId];
 
-            // Initialize drag path & initial availability
-            dragPathRef.current = [slotId];
-            initialAvailabilityRef.current = [...currentSlots];
+        // Initialize drag path & initial availability
+        dragPathRef.current = [slotId];
+        initialAvailabilityRef.current = [...currentSlots];
 
-            // Paint the starting slot immediately
-            toggleSlotAvailability(slotId, true);
-
-            // Start auto scroll
-            dragPointerRef.current = { x: touch.clientX, y: touch.clientY };
-            if (!autoScrollTimerRef.current) {
-              autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
-            }
-
-            if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate(60);
-            }
-          } else {
-            // View mode long press: open details tooltip
-            setLongPressedSlot(slotId);
-          }
+        // Start auto scroll
+        dragPointerRef.current = { x: touch.clientX, y: touch.clientY };
+        if (!autoScrollTimerRef.current) {
+          autoScrollTimerRef.current = requestAnimationFrame(runAutoScroll);
         }
-      }, 500);
+
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(40);
+        }
+
+        // Cancel long press timer since we are already dragging
+        clearLongPressTimer();
+      } else {
+        // Single touch:
+        // Set long press timer only in view mode (touchMode === 'scroll') to show details tooltip
+        clearLongPressTimer();
+        if (touchMode !== 'paint') {
+          longPressTimerRef.current = setTimeout(() => {
+            const start = touchStartRef.current;
+            if (start && start.slotId === slotId && !start.moved) {
+              start.longPressTriggered = true;
+              setLongPressedSlot(slotId);
+            }
+          }, 500);
+        }
+      }
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -790,7 +799,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const cellEl = (
                         <td
                           data-slot-id={slotId}
-                          className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold sm:h-16 ${cellBg} ${
+                          className={`h-12 border-r border-border/50 p-0 text-center relative cursor-crosshair heatmap-cell font-bold sm:h-16 select-none ${cellBg} ${
                             idx !== activeMobileDateIndex ? 'hidden sm:table-cell' : 'table-cell'
                           } ${isDimmed ? 'opacity-60 dark:opacity-50' : 'opacity-100'} ${
                             (isMouseDown || isTouchDragging) ? '' : 'transition-all duration-100'
@@ -827,11 +836,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                           <TooltipContent
                             side={dragTooltipSlot === slotId ? "top" : "right"}
                             sideOffset={8}
-                            className="p-0 border-0 bg-transparent shadow-none max-w-[220px] pointer-events-none"
+                            className="p-0 border-0 bg-transparent shadow-none max-w-[220px] pointer-events-none select-none"
                           >
                             {dragTooltipSlot === slotId ? (
-                              <div className="bg-primary text-primary-foreground font-bold p-2.5 rounded-xl shadow-2xl text-xs text-center animate-bounce border border-primary-foreground/20">
-                                👆 {language === 'en' ? 'Drag finger to paint/erase!' : 'Kéo ngón tay để tô/xóa!'}
+                              <div className="bg-primary text-primary-foreground font-bold p-2.5 rounded-xl shadow-2xl text-xs text-center animate-bounce border border-primary-foreground/20 select-none pointer-events-none">
+                                👆 {language === 'en' ? 'Double-tap & drag to paint/erase!' : 'Chạm đúp & kéo để tô/xóa!'}
                               </div>
                             ) : (
                               <div className="bg-card border border-border p-3 rounded-xl shadow-2xl text-xs backdrop-blur-sm">
