@@ -9,6 +9,11 @@ export interface Participant {
   isCompleted: boolean;
   isHost: boolean;
   password?: string; // Optional password to protect their availability grid
+  nudge?: {
+    senderName: string;
+    timestamp: number;
+    id: string;
+  };
 }
 
 export interface AccountSession {

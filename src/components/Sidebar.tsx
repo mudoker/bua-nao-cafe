@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { Users, Filter, CheckCircle2, Circle, AlertCircle, Trash2, Edit2, Check, HelpCircle, Activity, Settings } from 'lucide-react';
+import { Users, Filter, CheckCircle2, Circle, AlertCircle, Trash2, Edit2, Check, HelpCircle, Activity, Settings, Bell } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
@@ -335,14 +335,21 @@ export default function Sidebar({ className }: { className?: string }) {
               <>
                 <button
                   onClick={() => {
-                    setEditingId(targetP.id);
-                    setEditingName(targetP.name);
+                    if (currentUser) {
+                      updateParticipant(targetP.id, {
+                        nudge: {
+                          senderName: currentUser.name,
+                          timestamp: Date.now(),
+                          id: Math.random().toString(36).substr(2, 9),
+                        }
+                      });
+                    }
                     setContextMenu(null);
                   }}
                   className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-muted cursor-pointer flex items-center gap-2 text-foreground"
                 >
-                  <Edit2 className="w-4 h-4 text-muted-foreground" />
-                  <span>{language === 'en' ? 'Rename' : 'Đổi tên'}</span>
+                  <Bell className="w-4 h-4 text-primary shrink-0" />
+                  <span>{language === 'en' ? 'Nudge Member' : 'Nhắc nhở'}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -351,9 +358,9 @@ export default function Sidebar({ className }: { className?: string }) {
                     }
                     setContextMenu(null);
                   }}
-                  className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-destructive/10 hover:text-destructive cursor-pointer flex items-center gap-2 text-muted-foreground"
+                  className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-destructive/10 hover:text-destructive cursor-pointer flex items-center gap-2 text-muted-foreground border-t border-border/40 mt-1 pt-2"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 shrink-0" />
                   <span>{language === 'en' ? 'Remove Member' : 'Xóa thành viên'}</span>
                 </button>
               </>
