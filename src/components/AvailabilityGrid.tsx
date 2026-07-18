@@ -32,6 +32,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
   const [touchMode, setTouchMode] = useState<'paint' | 'scroll'>('scroll');
   const [activeMobileDateIndex, setActiveMobileDateIndex] = useState(0);
   const [longPressedSlot, setLongPressedSlot] = useState<string | null>(null);
+  const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
   
   const [isTouchDragging, setIsTouchDragging] = useState(false);
   const [dragStartSlot, setDragStartSlot] = useState<string | null>(null);
@@ -197,6 +198,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     setPaintMode(mode);
     setPaintedSlots([slotId]);
 
+    // Close tooltips immediately on press
+    setLongPressedSlot(null);
+    setHoveredSlot(null);
+    setDragTooltipSlot(null);
+
     // Skip history on mouse down, commit on mouse up
     toggleSlotAvailability(slotId, true);
 
@@ -236,6 +242,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
     isMouseDownRef.current = false;
     setPaintMode(null);
     setPaintedSlots([]);
+    setHoveredSlot(null);
 
     // Stop auto scroll
     if (autoScrollTimerRef.current) {
@@ -274,6 +281,8 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       const target = e.target as HTMLElement;
       if (!target.closest('.heatmap-cell') && !target.closest('button')) {
         setLongPressedSlot(null);
+        setHoveredSlot(null);
+        setDragTooltipSlot(null);
       }
     };
 
@@ -324,6 +333,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
       lastTouchTimeRef.current = Date.now();
       setLongPressedSlot(null);
       setDragTooltipSlot(null);
+      setHoveredSlot(null);
 
       touchStartRef.current = {
         slotId,
@@ -727,7 +737,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                       const isMeAvailable = currentUser && availability[currentUser.id]?.includes(slotId);
                       const isDimmed = currentUser && !isMeAvailable && percentage > 0;
 
-                      const isTooltipOpen = dragTooltipSlot === slotId ? true : (longPressedSlot === slotId ? true : undefined);
+                      const isTooltipOpen = dragTooltipSlot === slotId || longPressedSlot === slotId || hoveredSlot === slotId;
                       return (
                         <Tooltip key={slotId} open={isTooltipOpen}>
                           <TooltipTrigger
@@ -740,7 +750,17 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                                   (isMouseDown || isTouchDragging) ? '' : 'transition-all duration-100'
                                 }`}
                                 onMouseDown={(e) => handleMouseDown(slotId, e)}
-                                onMouseEnter={() => handleMouseEnterCell(slotId)}
+                                onMouseEnter={() => {
+                                  if (currentUser) {
+                                    handleMouseEnterCell(slotId);
+                                  }
+                                  if (Date.now() - lastTouchTimeRef.current > 700) {
+                                    setHoveredSlot(slotId);
+                                  }
+                                }}
+                                onMouseLeave={() => {
+                                  setHoveredSlot(null);
+                                }}
                                 onDoubleClick={() => handleCellDoubleClick(slotId)}
                               >
                                 {isFinalized && (
