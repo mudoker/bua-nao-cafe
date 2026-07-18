@@ -583,14 +583,26 @@ export const useEventStore = create<EventState>((set, get) => {
     },
 
     updateParticipant: (id, updates) => {
-      const { currentEvent, participants, availability, currentUser } = get();
+      const { currentEvent, participants, availability, currentUser, account } = get();
       if (!currentEvent) return;
 
       const updatedParticipants = participants.map((p) =>
         p.id === id ? { ...p, ...updates } : p
       );
 
-      const updatedUser = currentUser && currentUser.id === id ? { ...currentUser, ...updates } : currentUser;
+      const isMe = currentUser && currentUser.id === id;
+      const updatedUser = isMe ? { ...currentUser, ...updates } : currentUser;
+
+      if (isMe) {
+        const updatedAccount = {
+          name: updates.name !== undefined ? updates.name.trim() : (account?.name || ''),
+          password: updates.password !== undefined ? (updates.password || undefined) : account?.password,
+        };
+        set({ account: updatedAccount });
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('bua_nao_account', JSON.stringify(updatedAccount));
+        }
+      }
 
       set({
         participants: updatedParticipants,
@@ -607,7 +619,7 @@ export const useEventStore = create<EventState>((set, get) => {
 
       const p = participants.find(p => p.id === id);
       if (p) {
-        get().addActivity(`Participant "${p.name}" updated by host.`);
+        get().addActivity(`Participant "${updates.name || p.name}" updated.`);
       }
     },
 

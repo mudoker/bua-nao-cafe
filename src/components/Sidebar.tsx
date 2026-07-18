@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 import { cn } from '@/lib/utils';
+import ProfileEditDialog from './profile/ProfileEditDialog';
 
 export default function Sidebar({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -74,9 +75,12 @@ export default function Sidebar({ className }: { className?: string }) {
             <Users className="w-4 h-4 text-primary" />
             <span>{getTranslation(language, 'participants', { count: totalParticipants })}</span>
           </CardTitle>
-          <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
-            {getTranslation(language, 'submittedProgress', { rate: completionRate })}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {currentUser && <ProfileEditDialog />}
+            <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20">
+              {getTranslation(language, 'submittedProgress', { rate: completionRate })}
+            </span>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Completion Progress Bar */}
@@ -202,6 +206,24 @@ export default function Sidebar({ className }: { className?: string }) {
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>
+                        </div>
+                      )}
+
+                      {/* Self edit panel */}
+                      {isMe && (
+                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
+                          <ProfileEditDialog
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                                title={language === 'en' ? 'Edit profile' : 'Sửa tài khoản'}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            }
+                          />
                         </div>
                       )}
                     </div>
