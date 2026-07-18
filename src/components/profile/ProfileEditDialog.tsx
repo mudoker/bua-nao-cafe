@@ -14,14 +14,18 @@ import AvatarPicker from '../onboarding/AvatarPicker';
 
 interface ProfileEditDialogProps {
   trigger?: React.ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
+export default function ProfileEditDialog({ trigger, open: controlledOpen, onOpenChange: controlledOnOpenChange }: ProfileEditDialogProps) {
   const currentUser = useEventStore((state) => state.currentUser);
   const language = useEventStore((state) => state.language);
   const updateParticipant = useEventStore((state) => state.updateParticipant);
 
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setInternalOpen;
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);

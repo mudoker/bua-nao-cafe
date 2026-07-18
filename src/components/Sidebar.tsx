@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useEventStore } from '../store/useEventStore';
 import { getTranslation } from '../utils/translations';
-import { Users, Filter, CheckCircle2, Circle, AlertCircle, Trash2, Edit2, Check, HelpCircle, Activity } from 'lucide-react';
+import { Users, Filter, CheckCircle2, Circle, AlertCircle, Trash2, Edit2, Check, HelpCircle, Activity, Settings } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
@@ -31,6 +31,39 @@ export default function Sidebar({ className }: { className?: string }) {
   // Local state for host editing
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    participantId: string;
+  } | null>(null);
+
+  // Profile Dialog controlled trigger
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  React.useEffect(() => {
+    const handleClose = () => setContextMenu(null);
+    window.addEventListener('click', handleClose);
+    return () => window.removeEventListener('click', handleClose);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, participantId: string) => {
+    e.preventDefault();
+    const menuWidth = 150;
+    const menuHeight = 100;
+    let x = e.clientX;
+    let y = e.clientY;
+
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 10;
+    }
+    if (y + menuHeight > window.innerHeight) {
+      y = window.innerHeight - menuHeight - 10;
+    }
+
+    setContextMenu({ x, y, participantId });
+  };
 
   if (!currentEvent) return null;
 
@@ -111,7 +144,8 @@ export default function Sidebar({ className }: { className?: string }) {
                 return (
                   <div
                     key={p.id}
-                    className={`group flex items-center justify-between p-2 rounded-xl border transition-all ${
+                    onContextMenu={(e) => handleContextMenu(e, p.id)}
+                    className={`group flex items-center justify-between p-2 rounded-xl border transition-all select-none ${
                       isFiltered
                         ? 'border-primary bg-primary/5'
                         : 'border-transparent bg-muted/20 hover:bg-muted/40 dark:bg-muted/10 dark:hover:bg-muted/20'
@@ -120,7 +154,7 @@ export default function Sidebar({ className }: { className?: string }) {
                     <div
                       onClick={() => toggleParticipantFilter(p.id)}
                       className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0"
-                      title={language === 'en' ? `Click to filter grid to ${p.name}'s schedule` : `Click để lọc lịch rảnh của ${p.name}`}
+                      title={language === 'en' ? `Click to filter grid to ${p.name}'s schedule (Right-click for options)` : `Click để lọc lịch rảnh của ${p.name} (Click chuột phải để hiện thao tác)`}
                     >
                       {/* Status circle and Avatar */}
                       <div className="relative shrink-0">
@@ -169,7 +203,7 @@ export default function Sidebar({ className }: { className?: string }) {
                       </div>
                     </div>
 
-                    {/* Submit completion indicator & host actions */}
+                    {/* Submit completion indicator */}
                     <div className="flex items-center gap-1 shrink-0 ml-2">
                       {/* Check badge */}
                       {p.isCompleted ? (
@@ -181,35 +215,6 @@ export default function Sidebar({ className }: { className?: string }) {
                           <Circle className="w-4 h-4 text-muted-foreground/40" />
                         </span>
                       )}
-
-                      {/* Host action panel */}
-                      {isHost && !isMe && (
-                        <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-all">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingId(p.id);
-                              setEditingName(p.name);
-                            }}
-                            className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                            title={language === 'en' ? 'Rename participant' : 'Đổi tên thành viên'}
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeParticipant(p.id)}
-                            className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-red-500/10 cursor-pointer"
-                            title={language === 'en' ? 'Remove participant' : 'Xóa thành viên'}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      )}
-
-
                     </div>
                   </div>
                 );
@@ -296,6 +301,75 @@ export default function Sidebar({ className }: { className?: string }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Context Menu Overlay */}
+      {contextMenu && (() => {
+        const targetP = participants.find(p => p.id === contextMenu.participantId);
+        if (!targetP) return null;
+        const isMe = currentUser && currentUser.id === targetP.id;
+        const isHost = currentUser?.isHost;
+
+        return (
+          <div
+            className="fixed z-50 min-w-[150px] overflow-hidden rounded-xl border border-border bg-popover/90 backdrop-blur-md p-1.5 text-popover-foreground shadow-xl animate-fadeIn font-semibold"
+            style={{
+              left: contextMenu.x,
+              top: contextMenu.y,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isMe && (
+              <button
+                onClick={() => {
+                  setProfileOpen(true);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-muted cursor-pointer flex items-center gap-2 text-foreground"
+              >
+                <Settings className="w-4 h-4 text-muted-foreground" />
+                <span>{language === 'en' ? 'Profile Settings' : 'Thiết lập hồ sơ'}</span>
+              </button>
+            )}
+
+            {isHost && !isMe && (
+              <>
+                <button
+                  onClick={() => {
+                    setEditingId(targetP.id);
+                    setEditingName(targetP.name);
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-muted cursor-pointer flex items-center gap-2 text-foreground"
+                >
+                  <Edit2 className="w-4 h-4 text-muted-foreground" />
+                  <span>{language === 'en' ? 'Rename' : 'Đổi tên'}</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(language === 'en' ? `Remove ${targetP.name} from this event?` : `Xóa ${targetP.name} khỏi lịch này?`)) {
+                      removeParticipant(targetP.id);
+                    }
+                    setContextMenu(null);
+                  }}
+                  className="w-full text-left px-2.5 py-2 text-xs font-bold rounded-lg hover:bg-destructive/10 hover:text-destructive cursor-pointer flex items-center gap-2 text-muted-foreground"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>{language === 'en' ? 'Remove Member' : 'Xóa thành viên'}</span>
+                </button>
+              </>
+            )}
+
+            {!isMe && (!isHost || isMe) && (
+              <div className="px-2.5 py-2 text-xs font-semibold text-muted-foreground">
+                {language === 'en' ? 'No actions' : 'Không có thao tác'}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Controlled Profile settings dialog */}
+      <ProfileEditDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   );
 }
