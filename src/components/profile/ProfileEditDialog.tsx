@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Lock, Settings, Check } from 'lucide-react';
+import { User, Lock, Settings, Check, Eye, EyeOff } from 'lucide-react';
 import { useEventStore } from '@/store/useEventStore';
 import { getTranslation } from '@/utils/translations';
 import { COLORS, AVATARS } from '@/constants/profileOptions';
@@ -27,6 +27,7 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [password, setPassword] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -134,14 +135,24 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
                   <Lock className="w-3.5 h-3.5 text-primary/75" />
                   <span>{language === 'en' ? 'Account Password' : 'Mật khẩu bảo vệ'}</span>
                 </label>
-                <Input
-                  id="profile-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={language === 'en' ? 'Optional (leave blank to remove)' : 'Không bắt buộc (để trống để xóa)'}
-                  className="h-9 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
-                />
+                <div className="relative">
+                  <Input
+                    id="profile-password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={language === 'en' ? 'Optional (leave blank to remove)' : 'Không bắt buộc (để trống để xóa)'}
+                    className="h-9 pr-10 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
                 <span className="text-[10px] text-muted-foreground block font-medium leading-normal">
                   {language === 'en'
                     ? 'Protects your schedule edits and recovers your session across browser sessions.'
@@ -151,7 +162,7 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="pt-2 flex items-center justify-end gap-2 border-t border-border/80">
+          <div className="flex flex-row items-center justify-end gap-2 pt-3 border-t border-border/80 mt-2">
             <Button
               type="button"
               variant="ghost"
@@ -175,7 +186,7 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
                 language === 'en' ? 'Save' : 'Lưu'
               )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
