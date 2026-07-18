@@ -4,9 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { User, Lock, Settings, Check } from 'lucide-react';
 import { useEventStore } from '@/store/useEventStore';
 import { getTranslation } from '@/utils/translations';
+import { COLORS, AVATARS } from '@/constants/profileOptions';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import ColorPicker from '../onboarding/ColorPicker';
+import AvatarPicker from '../onboarding/AvatarPicker';
 
 interface ProfileEditDialogProps {
   trigger?: React.ReactElement;
@@ -19,12 +23,16 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
 
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
+  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0]);
   const [password, setPassword] = useState('');
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.name);
+      setSelectedColor(currentUser.color || COLORS[0]);
+      setSelectedAvatar(currentUser.avatar || AVATARS[0]);
       setPassword(currentUser.password || '');
     }
   }, [currentUser, open]);
@@ -37,6 +45,8 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
 
     updateParticipant(currentUser.id, {
       name: name.trim(),
+      color: selectedColor,
+      avatar: selectedAvatar,
       password: password.trim() || undefined,
     });
 
@@ -70,43 +80,76 @@ export default function ProfileEditDialog({ trigger }: ProfileEditDialogProps) {
         </DialogHeader>
 
         <form onSubmit={handleSave} className="space-y-4 pt-3">
-          {/* Username Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="profile-username" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-primary/75" />
-              <span>{language === 'en' ? 'Your Name' : 'Tên của bạn'}</span>
-            </label>
-            <Input
-              id="profile-username"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Huy, John"
-              required
-              className="h-9 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
-            />
-          </div>
+          <Tabs defaultValue="board" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-muted/60 dark:bg-muted/20 p-0.5 rounded-lg border border-border/40">
+              <TabsTrigger value="board" className="text-xs font-bold py-1 cursor-pointer">
+                {language === 'en' ? 'Board Profile' : 'Hồ Sơ Sự Kiện'}
+              </TabsTrigger>
+              <TabsTrigger value="global" className="text-xs font-bold py-1 cursor-pointer">
+                {language === 'en' ? 'Global Account' : 'Tài Khoản'}
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Password Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="profile-password" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-              <Lock className="w-3.5 h-3.5 text-primary/75" />
-              <span>{language === 'en' ? 'Password' : 'Mật khẩu'}</span>
-            </label>
-            <Input
-              id="profile-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={language === 'en' ? 'Optional (leave blank to remove)' : 'Không bắt buộc (để trống để xóa)'}
-              className="h-9 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
-            />
-            <span className="text-[10px] text-muted-foreground block font-medium leading-normal">
-              {language === 'en'
-                ? 'Protects your schedule from being edited by others.'
-                : 'Bảo vệ lịch của bạn khỏi bị người khác sửa đổi.'}
-            </span>
-          </div>
+            {/* Board Profile Tab */}
+            <TabsContent value="board" className="space-y-4 pt-4 outline-none">
+              {/* Username Input */}
+              <div className="space-y-1.5">
+                <label htmlFor="profile-username" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <User className="w-3.5 h-3.5 text-primary/75" />
+                  <span>{language === 'en' ? 'Your Display Name' : 'Tên hiển thị'}</span>
+                </label>
+                <Input
+                  id="profile-username"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Huy, John"
+                  required
+                  className="h-9 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
+                />
+              </div>
+
+              {/* Color Picker */}
+              <ColorPicker
+                colors={COLORS}
+                selectedColor={selectedColor}
+                onSelectColor={setSelectedColor}
+                label={language === 'en' ? 'Choose Theme Color' : 'Chọn màu chủ đề'}
+              />
+
+              {/* Avatar Picker */}
+              <AvatarPicker
+                avatars={AVATARS}
+                selectedAvatar={selectedAvatar}
+                onSelectAvatar={setSelectedAvatar}
+                label={language === 'en' ? 'Select Emoji Avatar' : 'Chọn hình đại diện'}
+              />
+            </TabsContent>
+
+            {/* Global Account Tab */}
+            <TabsContent value="global" className="space-y-4 pt-4 outline-none">
+              {/* Password Input */}
+              <div className="space-y-1.5">
+                <label htmlFor="profile-password" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5 text-primary/75" />
+                  <span>{language === 'en' ? 'Account Password' : 'Mật khẩu bảo vệ'}</span>
+                </label>
+                <Input
+                  id="profile-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={language === 'en' ? 'Optional (leave blank to remove)' : 'Không bắt buộc (để trống để xóa)'}
+                  className="h-9 text-xs font-bold focus-visible:ring-1 bg-muted/20 border-border text-foreground"
+                />
+                <span className="text-[10px] text-muted-foreground block font-medium leading-normal">
+                  {language === 'en'
+                    ? 'Protects your schedule edits and recovers your session across browser sessions.'
+                    : 'Bảo vệ lịch chỉnh sửa của bạn và khôi phục tài khoản trên các thiết bị khác.'}
+                </span>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           <DialogFooter className="pt-2 flex items-center justify-end gap-2 border-t border-border/80">
             <Button
