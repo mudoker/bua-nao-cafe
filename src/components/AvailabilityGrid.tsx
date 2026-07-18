@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function AvailabilityGrid({ className }: { className?: string }) {
   const currentEvent = useEventStore((state) => state.currentEvent);
@@ -722,7 +723,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
         )}
 
         {/* Main Grid View */}
-        <div ref={gridContainerRef} className="overflow-x-auto border border-border rounded-xl relative bg-card">
+        <ScrollArea
+          viewportRef={gridContainerRef}
+          orientation="horizontal"
+          className="border border-border rounded-xl bg-card"
+        >
           <table
             className="w-full min-h-full border-collapse table-fixed select-none"
             style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
@@ -910,7 +915,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollArea>
 
         {/* Grid Legend & Instructions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-border/80">
