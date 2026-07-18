@@ -729,11 +729,11 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
           className="border border-border rounded-xl bg-card"
         >
           <table
-            className="w-full min-h-full border-collapse table-fixed select-none"
-            style={{ minWidth: `${80 + filteredDates.length * 90}px` }}
+            className="w-full min-h-full border-collapse table-fixed select-none sm:[min-width:var(--table-min-width)]"
+            style={{ ['--table-min-width' as any]: `${80 + filteredDates.length * 90}px` }}
           >
             {/* Header Row (Dates) */}
-            <thead className="sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
+            <thead className="hidden sm:table-header-group sticky top-0 z-20 bg-card border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)]">
               <tr>
                 <th className="w-16 md:w-20 shrink-0 sticky left-0 z-30 bg-card border-r border-border p-1 text-[10px] font-bold text-muted-foreground uppercase text-center">
                   {getTranslation(language, 'time')}
@@ -786,7 +786,7 @@ export default function AvailabilityGrid({ className }: { className?: string }) 
                 return (
                   <tr key={timeStr} className="h-12 border-b border-border/50 last:border-0 sm:h-16">
                     {/* Left Column (Sticky Time) */}
-                    <td className="sticky left-0 z-10 h-12 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-16">
+                    <td className="sticky left-0 z-10 h-12 bg-card border-r border-border text-[10px] font-bold text-muted-foreground text-center align-middle p-0.5 leading-none sm:h-16 w-16 sm:w-20 shrink-0">
                       {formattedTime}
                     </td>
 
