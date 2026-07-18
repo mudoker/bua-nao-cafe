@@ -355,32 +355,44 @@ export default function Analytics({ className }: { className?: string }) {
                     const y = height - padding - (h.score / 100) * (height - padding * 2);
 
                     return (
-                      <Tooltip key={h.slotId}>
-                        <TooltipTrigger
-                          render={
-                            <button
-                              type="button"
-                              aria-label={`${h.formattedDate} ${h.formattedTime}`}
-                              className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              style={{
-                                left: `${(x / width) * 100}%`,
-                                top: `${(y / height) * 100}%`,
-                              }}
-                              onMouseEnter={() => setHoveredPoint(index)}
-                              onMouseLeave={() => setHoveredPoint(null)}
-                            />
-                          }
-                        />
-                        <TooltipContent side="top" sideOffset={8} className="bg-card text-foreground border border-border shadow-md text-[9px] font-bold text-center">
-                          <span>{h.formattedDate}</span>
-                          <span className="block text-muted-foreground">{h.formattedTime}</span>
-                          <span className="block text-primary">
-                            {h.votes} / {totalCompleted} {language === 'en' ? 'available' : 'người rảnh'}
-                          </span>
-                        </TooltipContent>
-                      </Tooltip>
+                      <button
+                        key={h.slotId}
+                        type="button"
+                        aria-label={`${h.formattedDate} ${h.formattedTime}`}
+                        className="absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer z-20"
+                        style={{
+                          left: `${(x / width) * 100}%`,
+                          top: `${(y / height) * 100}%`,
+                        }}
+                        onMouseEnter={() => setHoveredPoint(index)}
+                        onMouseLeave={() => setHoveredPoint(null)}
+                      />
                     );
                   })}
+
+                  {/* Single Hovered Point Tooltip */}
+                  {hoveredPoint !== null && visibleSlotProfile[hoveredPoint] && (() => {
+                    const divisor = Math.max(visibleSlotProfile.length - 1, 1);
+                    const h = visibleSlotProfile[hoveredPoint];
+                    const x = padding + (hoveredPoint / divisor) * (width - padding * 2);
+                    const y = height - padding - (h.score / 100) * (height - padding * 2);
+
+                    return (
+                      <div
+                        className="absolute bg-card border border-border p-2 rounded-xl shadow-lg z-30 pointer-events-none text-foreground text-center text-[10px] font-bold -translate-x-1/2 -translate-y-full mt-[-10px] min-w-[130px] animate-fade-in"
+                        style={{
+                          left: `${(x / width) * 100}%`,
+                          top: `${(y / height) * 100}%`,
+                        }}
+                      >
+                        <span>{h.formattedDate}</span>
+                        <span className="block text-muted-foreground text-[9px] font-semibold">{h.formattedTime}</span>
+                        <span className="block text-primary font-extrabold mt-0.5">
+                          {h.votes} / {totalCompleted} {language === 'en' ? 'available' : 'người rảnh'}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
